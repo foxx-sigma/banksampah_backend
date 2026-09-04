@@ -12,10 +12,12 @@ import {
   RolesGuard,
   GlobalExceptionFilter,
   TransformInterceptor,
+  StorageService,
 } from './common/index.js';
 
 import { AppMakerModule } from './modules/app-maker/app-maker.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { NasabahModule } from './modules/nasabah/nasabah.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -23,6 +25,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   imports: [
     AppMakerModule,
     AuthModule,
+    NasabahModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -58,6 +61,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   providers: [
     AppService,
     PrismaService,
+    StorageService,
     {
       provide: APP_GUARD,
       useClass: AppKeyGuard,
@@ -79,6 +83,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       useClass: GlobalExceptionFilter,
     },
   ],
-  exports: [PrismaService],
+  exports: [PrismaService, StorageService],
 })
 export class AppModule {}
