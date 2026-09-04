@@ -101,14 +101,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           default: {
             statusCode = HttpStatus.BAD_REQUEST;
             message = `Kesalahan operasi database (${err.code || 'DB_ERROR'})`;
-            errors = [err.message || String(err)];
+            errors = ['Operasi basis data tidak dapat diproses dengan parameter yang diberikan'];
             break;
           }
         }
       } else if (err.name === 'PrismaClientValidationError') {
         statusCode = HttpStatus.BAD_REQUEST;
         message = 'Format atau tipe data input tidak sesuai dengan skema database';
-        errors = [err.message || 'PrismaClientValidationError'];
+        errors = ['Format atau tipe data input tidak valid'];
       } else if (exception instanceof Error) {
         statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
         const sanitized = exception.message
@@ -118,11 +118,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             )
           : 'Terjadi kesalahan pada server';
 
-        message =
-          process.env.NODE_ENV === 'production'
-            ? 'Terjadi kesalahan internal pada server'
-            : sanitized;
-        errors = [sanitized];
+        const isProd = process.env.NODE_ENV === 'production';
+        message = isProd
+          ? 'Terjadi kesalahan internal pada server'
+          : sanitized;
+        errors = isProd ? null : [sanitized];
       }
     } else if (exception instanceof Error) {
       this.logger.error(
@@ -135,13 +135,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             /postgresql:\/\/[^@]+@/gi,
             'postgresql://***@',
           )
-        : 'Terjadi kesalahan internal pada server';
+        : 'Terjadi kesalahan pada server';
 
-      message =
-        process.env.NODE_ENV === 'production'
-          ? 'Terjadi kesalahan internal pada server'
-          : sanitized;
-      errors = [sanitized];
+      const isProd = process.env.NODE_ENV === 'production';
+      message = isProd
+        ? 'Terjadi kesalahan internal pada server'
+        : sanitized;
+      errors = isProd ? null : [sanitized];
     } else {
       this.logger.error('Unknown exception thrown', exception);
       errors = [String(exception)];

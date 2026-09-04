@@ -51,6 +51,16 @@ export class AppKeyGuard implements CanActivate {
     } else {
       appMaker = await this.prisma.appMaker.findUnique({
         where: { appKey: appKeyStr },
+        select: {
+          id: true,
+          email: true,
+          namaSiswa: true,
+          kelas: true,
+          namaApp: true,
+          appKey: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
 
       if (!appMaker) {

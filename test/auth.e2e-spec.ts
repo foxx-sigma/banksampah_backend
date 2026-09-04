@@ -204,6 +204,27 @@ describe('AuthController (e2e)', () => {
       expect(res.body.data.nasabah.foto).toMatch(/^\/uploads\/nasabah\/.+\.jpg$/);
     });
 
+    it('should reject file upload if extension is not allowed (e.g. .html disguised as image)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/nasabah/register')
+        .set('x-app-key', mockAppMaker.appKey)
+        .field('username', 'hacker')
+        .field('password', 'password123')
+        .field('namaNasabah', 'Hacker')
+        .field('alamat', 'Cyber')
+        .field('telp', '08123456789')
+        .attach('foto', Buffer.from('<h1>XSS</h1>'), {
+          filename: 'payload.html',
+          contentType: 'image/jpeg',
+        })
+        .expect(400);
+
+      expect(res.body.statusCode).toBe(400);
+      expect(res.body.message).toBe(
+        'Format file foto tidak didukung (hanya JPG, PNG, atau WEBP)',
+      );
+    });
+
     it('should return 409 if username is already taken in the same tenant', async () => {
       prismaMock.user.findUnique.mockResolvedValue(mockNasabahUser);
 

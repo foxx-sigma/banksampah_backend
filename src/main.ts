@@ -27,17 +27,34 @@ async function bootstrap() {
   if (!existsSync(nasabahUploadDir)) {
     mkdirSync(nasabahUploadDir, { recursive: true });
   }
-  app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
+  app.useStaticAssets(uploadDir, {
+    prefix: '/uploads/',
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', 'inline');
+    },
+  });
 
   const expressApp = app.getHttpAdapter().getInstance();
   if (expressApp && typeof expressApp.disable === 'function') {
     expressApp.disable('x-powered-by');
   }
+  if (expressApp && typeof expressApp.set === 'function') {
+    expressApp.set('trust proxy', 1);
+  }
 
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
-      contentSecurityPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          scriptSrc: ["'none'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          objectSrc: ["'none'"],
+        },
+      },
     }),
   );
 
@@ -56,15 +73,33 @@ async function bootstrap() {
   });
   app.use(limiter);
 
+  const authLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      statusCode: 429,
+      success: false,
+      message:
+        'Terlalu banyak percobaan pada endpoint autentikasi, silakan coba lagi nanti.',
+      errors: null,
+      timestamp: new Date().toISOString(),
+    },
+  });
+  app.use('/api/v1/auth/login', authLimiter);
+  app.use('/api/v1/maker/login', authLimiter);
+  app.use('/api/v1/maker/check-key', authLimiter);
+
   const corsOrigin = process.env.CORS_ORIGIN;
+  const isWildcard = !corsOrigin || corsOrigin === '*';
   app.enableCors({
-    origin:
-      corsOrigin && corsOrigin !== '*'
-        ? corsOrigin.split(',').map((o) => o.trim())
-        : true,
+    origin: isWildcard
+      ? true
+      : corsOrigin.split(',').map((o) => o.trim()),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-app-key', 'X-App-Key'],
-    credentials: true,
+    credentials: !isWildcard,
   });
 
   app.useGlobalPipes(
