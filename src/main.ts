@@ -1,13 +1,33 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { AppModule, ObserveInstrument } from './app.module.js';
 
+process.on('unhandledRejection', (reason: any) => {
+  console.error('Unhandled Rejection at Promise:', reason?.stack || reason);
+});
+process.on('uncaughtException', (error: Error) => {
+  console.error('Uncaught Exception thrown:', error.stack || error);
+});
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     instrument: ObserveInstrument,
   });
+
+  const uploadDir = join(process.cwd(), 'uploads');
+  if (!existsSync(uploadDir)) {
+    mkdirSync(uploadDir, { recursive: true });
+  }
+  const nasabahUploadDir = join(uploadDir, 'nasabah');
+  if (!existsSync(nasabahUploadDir)) {
+    mkdirSync(nasabahUploadDir, { recursive: true });
+  }
+  app.useStaticAssets(uploadDir, { prefix: '/uploads/' });
 
   const expressApp = app.getHttpAdapter().getInstance();
   if (expressApp && typeof expressApp.disable === 'function') {

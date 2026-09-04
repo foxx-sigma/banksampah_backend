@@ -54,7 +54,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         err.stack,
       );
 
-      if (
+      if (err.name === 'MulterError') {
+        statusCode = HttpStatus.BAD_REQUEST;
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          message = 'Ukuran file melebihi batas maksimum yang diizinkan';
+        } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          message = `Field upload tidak terduga atau tidak dikenali: ${err.field || 'file'}`;
+        } else {
+          message = `Kesalahan unggah file: ${err.message}`;
+        }
+        errors = [err.code || err.message];
+      } else if (
         err.name === 'PrismaClientKnownRequestError' ||
         typeof err.code === 'string'
       ) {
@@ -91,12 +101,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           default: {
             statusCode = HttpStatus.BAD_REQUEST;
             message = `Kesalahan operasi database (${err.code || 'DB_ERROR'})`;
+            errors = [err.message || String(err)];
             break;
           }
         }
       } else if (err.name === 'PrismaClientValidationError') {
         statusCode = HttpStatus.BAD_REQUEST;
         message = 'Format atau tipe data input tidak sesuai dengan skema database';
+        errors = [err.message || 'PrismaClientValidationError'];
       } else if (exception instanceof Error) {
         statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
         const sanitized = exception.message
@@ -110,6 +122,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           process.env.NODE_ENV === 'production'
             ? 'Terjadi kesalahan internal pada server'
             : sanitized;
+        errors = [sanitized];
       }
     } else if (exception instanceof Error) {
       this.logger.error(
@@ -128,8 +141,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         process.env.NODE_ENV === 'production'
           ? 'Terjadi kesalahan internal pada server'
           : sanitized;
+      errors = [sanitized];
     } else {
       this.logger.error('Unknown exception thrown', exception);
+      errors = [String(exception)];
     }
 
     response.status(statusCode).json({
