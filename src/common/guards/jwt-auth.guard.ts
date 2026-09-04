@@ -17,6 +17,17 @@ export class JwtAuthGuard implements CanActivate {
     private readonly configService: ConfigService,
   ) {}
 
+  private getSecret(): string {
+    const secret =
+      this.configService.get<string>('JWT_SECRET') || process.env.JWT_SECRET;
+    if (!secret) {
+      throw new UnauthorizedException(
+        'Konfigurasi server gagal: JWT_SECRET belum disetel',
+      );
+    }
+    return secret;
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -29,13 +40,19 @@ export class JwtAuthGuard implements CanActivate {
     if (isPublic) {
       if (token) {
         try {
+          const secret = this.getSecret();
           const payload = await this.jwtService.verifyAsync(token, {
-            secret:
-              this.configService.get<string>('JWT_SECRET') ||
-              process.env.JWT_SECRET ||
-              'eco-waste-management-jwt-secret-2026',
+            secret,
           });
-          request.user = payload;
+
+          // Jika token menyertakan tenant, pastikan cocok dengan x-app-key jika ada
+          if (
+            !request.appMakerId ||
+            !payload.appMakerId ||
+            payload.appMakerId === request.appMakerId
+          ) {
+            request.user = payload;
+          }
         } catch {
           // Token invalid on public route, ignore and continue as unauthenticated
         }
@@ -48,16 +65,28 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
+      const secret = this.getSecret();
       const payload = await this.jwtService.verifyAsync(token, {
-        secret:
-          this.configService.get<string>('JWT_SECRET') ||
-          process.env.JWT_SECRET ||
-          'eco-waste-management-jwt-secret-2026',
+        secret,
       });
+
+      // Validasi isolasi multi-tenant: jika request terikat appMakerId dan payload juga memuat appMakerId, keduanya harus identik
+      if (
+        request.appMakerId &&
+        payload.appMakerId &&
+        payload.appMakerId !== request.appMakerId
+      ) {
+        throw new UnauthorizedException(
+          'Sesi otentikasi tidak valid untuk App Key yang digunakan',
+        );
+      }
 
       request.user = payload;
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException(
         'Token otentikasi tidak valid atau telah kedaluwarsa',
       );
@@ -74,3 +103,4 @@ export class JwtAuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 }
+

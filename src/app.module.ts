@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
@@ -21,17 +21,33 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    JwtModule.register({
+    JwtModule.registerAsync({
       global: true,
-      secret:
-        process.env.JWT_SECRET || 'eco-waste-management-jwt-secret-2026',
-      signOptions: { expiresIn: '7d' },
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const secret =
+          configService.get<string>('JWT_SECRET') || process.env.JWT_SECRET;
+        if (!secret) {
+          throw new Error(
+            'Konfigurasi keamanan gagal: JWT_SECRET belum disetel pada file environment (.env)',
+          );
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '7d' },
+        };
+      },
     }),
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'banksampah_backend',
-    }),
+    ...(process.env.OBSERVE_APP_KEY &&
+    process.env.OBSERVE_APP_KEY !== 'YOUR_APP_KEY'
+      ? [
+          ObserveModule.forRoot({
+            appKey: process.env.OBSERVE_APP_KEY,
+            appSecret: process.env.OBSERVE_APP_SECRET || '',
+            serviceId: 'banksampah_backend',
+          }),
+        ]
+      : []),
   ],
   controllers: [AppController],
   providers: [

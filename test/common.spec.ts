@@ -188,6 +188,56 @@ describe('Common Infrastructure', () => {
       expect(result).toBe(true);
       expect(req.user).toEqual(payload);
     });
+
+    it('should throw 401 if cross-tenant appMakerId does not match', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      const payload = {
+        sub: 'u1',
+        username: 'john',
+        role: 'NASABAH',
+        appMakerId: 'tenant-a',
+      };
+      jwtServiceMock.verifyAsync.mockResolvedValue(payload);
+
+      const req: any = {
+        headers: { authorization: 'Bearer good-token' },
+        appMakerId: 'tenant-b',
+      };
+
+      const context = {
+        getHandler: vi.fn(),
+        getClass: vi.fn(),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(req),
+        }),
+      } as unknown as ExecutionContext;
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw 401 if JWT_SECRET is missing', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      configServiceMock.get.mockReturnValue(undefined);
+      delete process.env.JWT_SECRET;
+
+      const req: any = {
+        headers: { authorization: 'Bearer good-token' },
+      };
+
+      const context = {
+        getHandler: vi.fn(),
+        getClass: vi.fn(),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(req),
+        }),
+      } as unknown as ExecutionContext;
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
   });
 
   describe('RolesGuard', () => {
@@ -297,6 +347,61 @@ describe('Common Infrastructure', () => {
           message: 'Validasi data gagal',
           errors: ['email harus valid', 'password minimal 6 karakter'],
           timestamp: expect.any(String),
+        }),
+      );
+    });
+
+    it('should format Prisma P2002 unique constraint error cleanly', () => {
+      const jsonMock = vi.fn();
+      const statusMock = vi.fn().mockReturnValue({ json: jsonMock });
+
+      const host = {
+        switchToHttp: vi.fn().mockReturnValue({
+          getResponse: vi.fn().mockReturnValue({ status: statusMock }),
+        }),
+      } as unknown as any;
+
+      const prismaError = {
+        name: 'PrismaClientKnownRequestError',
+        code: 'P2002',
+        meta: { target: ['email'] },
+        message: 'Unique constraint failed on the fields: (`email`)',
+      };
+      filter.catch(prismaError, host);
+
+      expect(statusMock).toHaveBeenCalledWith(409);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 409,
+          success: false,
+          message: 'Data dengan email tersebut sudah terdaftar',
+        }),
+      );
+    });
+
+    it('should format Prisma P2025 not found error cleanly', () => {
+      const jsonMock = vi.fn();
+      const statusMock = vi.fn().mockReturnValue({ json: jsonMock });
+
+      const host = {
+        switchToHttp: vi.fn().mockReturnValue({
+          getResponse: vi.fn().mockReturnValue({ status: statusMock }),
+        }),
+      } as unknown as any;
+
+      const prismaError = {
+        name: 'PrismaClientKnownRequestError',
+        code: 'P2025',
+        message: 'An operation failed because it depends on one or more records that were required but not found',
+      };
+      filter.catch(prismaError, host);
+
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 404,
+          success: false,
+          message: 'Data yang diminta tidak ditemukan',
         }),
       );
     });
