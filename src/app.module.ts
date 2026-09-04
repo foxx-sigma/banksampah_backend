@@ -14,10 +14,13 @@ import {
   TransformInterceptor,
 } from './common/index.js';
 
+import { AppMakerModule } from './modules/app-maker/app-maker.module.js';
+
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
+    AppMakerModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
