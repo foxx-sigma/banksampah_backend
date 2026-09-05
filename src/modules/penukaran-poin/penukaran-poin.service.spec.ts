@@ -51,10 +51,12 @@ describe('PenukaranPoinService', () => {
       nasabah: {
         findUnique: vi.fn(),
         update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       hadiah: {
         findFirst: vi.fn(),
         update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       penukaranPoin: {
         findFirst: vi.fn(),
@@ -86,13 +88,13 @@ describe('PenukaranPoinService', () => {
         catatan: 'Warna biru jika ada',
       });
 
-      expect(prismaMock.nasabah.update).toHaveBeenCalledWith({
-        where: { id: mockNasabahId },
-        data: { saldoPoin: { decrement: 100 } },
-      });
-      expect(prismaMock.hadiah.update).toHaveBeenCalledWith({
-        where: { id: mockHadiahId },
+      expect(prismaMock.hadiah.updateMany).toHaveBeenCalledWith({
+        where: { id: mockHadiahId, appMakerId: mockAppMakerId, stok: { gte: 1 } },
         data: { stok: { decrement: 1 } },
+      });
+      expect(prismaMock.nasabah.updateMany).toHaveBeenCalledWith({
+        where: { id: mockNasabahId, appMakerId: mockAppMakerId, saldoPoin: { gte: 100 } },
+        data: { saldoPoin: { decrement: 100 } },
       });
       expect(prismaMock.penukaranPoin.create).toHaveBeenCalled();
       const createArgs = prismaMock.penukaranPoin.create.mock.calls[0][0];

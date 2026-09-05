@@ -26,6 +26,7 @@ import {
   ResponseMessage,
   CurrentAppMaker,
   CurrentUser,
+  StorageService,
 } from '../../common/index.js';
 
 const nasabahUploadDir = join(process.cwd(), 'uploads', 'nasabah');
@@ -89,7 +90,10 @@ const multerNasabahOptions = {
 
 @Controller('api/v1/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Public()
   @Post('nasabah/register')
@@ -101,7 +105,10 @@ export class AuthController {
     @Body() dto: RegisterNasabahBankDto,
     @UploadedFile() file?: any,
   ) {
-    const fotoUrl = file ? `/uploads/nasabah/${file.filename}` : undefined;
+    let fotoUrl: string | undefined;
+    if (file) {
+      fotoUrl = await this.storageService.uploadFile('nasabah', file);
+    }
     try {
       return await this.authService.registerNasabah(appMakerId, dto, fotoUrl);
     } catch (error) {

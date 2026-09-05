@@ -89,6 +89,16 @@ export class AuthService {
   async registerAdmin(appMakerId: string, dto: RegisterAdminBankDto) {
     const username = dto.username.trim();
 
+    const existingAdmin = await this.prisma.adminBank.findFirst({
+      where: { appMakerId },
+    });
+
+    if (existingAdmin) {
+      throw new ConflictException(
+        'Admin Bank Sampah untuk unit ini sudah terdaftar',
+      );
+    }
+
     const existingUser = await this.prisma.user.findUnique({
       where: {
         appMakerId_username: {

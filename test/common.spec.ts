@@ -189,6 +189,42 @@ describe('Common Infrastructure', () => {
       expect(req.user).toEqual(payload);
     });
 
+    it('should throw 401 if user no longer exists in database when prisma is provided', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      const payload = { sub: 'deleted-user', username: 'deleted', role: 'NASABAH' };
+      jwtServiceMock.verifyAsync.mockResolvedValue(payload);
+
+      const prismaUserMock = {
+        user: {
+          findUnique: vi.fn().mockResolvedValue(null),
+        },
+        appMaker: {
+          findUnique: vi.fn().mockResolvedValue(null),
+        },
+      };
+
+      const guardWithPrisma = new JwtAuthGuard(
+        reflector,
+        jwtServiceMock,
+        configServiceMock,
+        prismaUserMock as any,
+      );
+
+      const context = {
+        getHandler: vi.fn(),
+        getClass: vi.fn(),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue({
+            headers: { authorization: 'Bearer token-for-deleted-user' },
+          }),
+        }),
+      } as unknown as ExecutionContext;
+
+      await expect(guardWithPrisma.canActivate(context)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
     it('should throw 401 if cross-tenant appMakerId does not match', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       const payload = {

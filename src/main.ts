@@ -40,7 +40,14 @@ async function bootstrap() {
     expressApp.disable('x-powered-by');
   }
   if (expressApp && typeof expressApp.set === 'function') {
-    expressApp.set('trust proxy', 1);
+    const trustProxy = process.env.TRUST_PROXY;
+    if (trustProxy === 'true' || trustProxy === '1') {
+      expressApp.set('trust proxy', 1);
+    } else if (trustProxy && trustProxy !== 'false' && trustProxy !== '0') {
+      expressApp.set('trust proxy', trustProxy);
+    } else {
+      expressApp.set('trust proxy', false);
+    }
   }
 
   app.use(
@@ -92,11 +99,13 @@ async function bootstrap() {
   app.use('/api/v1/maker/check-key', authLimiter);
 
   const corsOrigin = process.env.CORS_ORIGIN;
-  const isWildcard = !corsOrigin || corsOrigin === '*';
+  const isWildcard = !corsOrigin || corsOrigin.trim() === '*';
+  const allowedOrigins = isWildcard
+    ? '*'
+    : corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+
   app.enableCors({
-    origin: isWildcard
-      ? true
-      : corsOrigin.split(',').map((o) => o.trim()),
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-app-key', 'X-App-Key'],
     credentials: !isWildcard,

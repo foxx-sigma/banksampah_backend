@@ -3,10 +3,11 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { PrismaService } from '../../common/prisma.service.js';
+import { StorageService } from '../../common/storage.service.js';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, PrismaService],
+  providers: [AuthService, JwtStrategy, PrismaService, StorageService],
   exports: [AuthService, JwtStrategy],
 })
 export class AuthModule {}

@@ -3,10 +3,12 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma.service.js';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 
 @Injectable()
@@ -15,6 +17,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   private getSecret(): string {
@@ -79,6 +82,33 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException(
           'Sesi otentikasi tidak valid untuk App Key yang digunakan',
         );
+      }
+
+      if (this.prisma) {
+        const userId = payload.userId || payload.sub;
+        if (userId) {
+          if (payload.role === 'MAKER') {
+            const maker = await this.prisma.appMaker.findUnique({
+              where: { id: userId },
+              select: { id: true },
+            });
+            if (!maker) {
+              throw new UnauthorizedException(
+                'Sesi otentikasi tidak valid: pengguna sudah tidak aktif',
+              );
+            }
+          } else {
+            const user = await this.prisma.user.findUnique({
+              where: { id: userId },
+              select: { id: true, appMakerId: true, role: true },
+            });
+            if (!user) {
+              throw new UnauthorizedException(
+                'Sesi otentikasi tidak valid: pengguna sudah tidak aktif',
+              );
+            }
+          }
+        }
       }
 
       request.user = payload;

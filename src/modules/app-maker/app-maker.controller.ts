@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AppMakerService } from './app-maker.service.js';
 import {
@@ -57,6 +58,11 @@ export class AppMakerController {
   @Get('check-key')
   @ResponseMessage('App Key berhasil ditemukan')
   async checkKey(@Query() query: CheckKeyDto) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException(
+        'Endpoint pencarian App Key publik dinonaktifkan pada lingkungan produksi demi keamanan data. Silakan gunakan endpoint login untuk memperoleh App Key.',
+      );
+    }
     return this.appMakerService.checkKey(query.email);
   }
 }

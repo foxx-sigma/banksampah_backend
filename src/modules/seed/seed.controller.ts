@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { SeedService } from './seed.service.js';
 import {
@@ -23,6 +24,11 @@ export class SeedController {
   @HttpCode(HttpStatus.CREATED)
   @ResponseMessage('Data seed berhasil di-generate')
   async seed(@CurrentAppMaker('id') appMakerId: string) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException(
+        'Endpoint seeding dinonaktifkan pada lingkungan produksi demi keamanan data',
+      );
+    }
     return this.seedService.seedTenantData(appMakerId);
   }
 }

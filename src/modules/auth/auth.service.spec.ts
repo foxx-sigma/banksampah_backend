@@ -24,6 +24,7 @@ describe('AuthService & JwtStrategy', () => {
         create: vi.fn(),
       },
       adminBank: {
+        findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn(),
       },
       $transaction: vi.fn((callback) => callback(prismaMock)),
@@ -183,6 +184,26 @@ describe('AuthService & JwtStrategy', () => {
 
       prismaMock.user.findUnique.mockResolvedValue({
         id: 'existing-admin-id',
+      });
+
+      await expect(authService.registerAdmin(appMakerId, dto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('should throw ConflictException if admin unit is already registered for the tenant', async () => {
+      const appMakerId = 'tenant-1';
+      const dto = {
+        username: 'admin2',
+        password: 'adminpassword123',
+        namaUnit: 'Bank Sampah Kedua',
+        namaPengelola: 'Pak Joko',
+        telp: '08111222333',
+      };
+
+      prismaMock.adminBank.findFirst.mockResolvedValue({
+        id: 'admin-bank-1',
+        namaUnit: 'Bank Sampah Pertama',
       });
 
       await expect(authService.registerAdmin(appMakerId, dto)).rejects.toThrow(

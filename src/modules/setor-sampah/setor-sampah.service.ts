@@ -236,6 +236,18 @@ export class SetorSampahService {
       throw new NotFoundException('Data setor sampah tidak ditemukan');
     }
 
+    if (existing.status === 'selesai' && dto.status !== 'selesai') {
+      throw new BadRequestException(
+        'Transaksi yang sudah berstatus selesai tidak dapat diubah kembali ke status lain',
+      );
+    }
+
+    if (existing.status === 'ditolak') {
+      throw new BadRequestException(
+        'Transaksi yang sudah ditolak tidak dapat diubah kembali',
+      );
+    }
+
     const wasAlreadySelesai = existing.status === 'selesai';
     let totalBeratKgReal = existing.totalBeratKgReal;
     let totalPoinReal = existing.totalPoinReal;

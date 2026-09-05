@@ -58,19 +58,39 @@ export class PenukaranPoinService {
     const kodePenukaran = `TKR-${year}${month}-${randomSuffix}`;
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.nasabah.update({
-        where: { id: nasabah.id },
+      const updatedHadiah = await tx.hadiah.updateMany({
+        where: {
+          id: hadiah.id,
+          appMakerId,
+          stok: { gte: 1 },
+        },
+        data: {
+          stok: { decrement: 1 },
+        },
+      });
+
+      if (updatedHadiah.count === 0) {
+        throw new BadRequestException(
+          'Stok hadiah tidak mencukupi atau telah habis',
+        );
+      }
+
+      const updatedNasabah = await tx.nasabah.updateMany({
+        where: {
+          id: nasabah.id,
+          appMakerId,
+          saldoPoin: { gte: hadiah.poinDibutuhkan },
+        },
         data: {
           saldoPoin: { decrement: hadiah.poinDibutuhkan },
         },
       });
 
-      await tx.hadiah.update({
-        where: { id: hadiah.id },
-        data: {
-          stok: { decrement: 1 },
-        },
-      });
+      if (updatedNasabah.count === 0) {
+        throw new BadRequestException(
+          'Saldo poin tidak mencukupi untuk menukar hadiah ini',
+        );
+      }
 
       const penukaran = await tx.penukaranPoin.create({
         data: {

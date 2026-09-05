@@ -111,18 +111,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         errors = ['Format atau tipe data input tidak valid'];
       } else if (exception instanceof Error) {
         statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-        const sanitized = exception.message
-          ? exception.message.replace(
-              /postgresql:\/\/[^@]+@/gi,
-              'postgresql://***@',
-            )
-          : 'Terjadi kesalahan pada server';
-
-        const isProd = process.env.NODE_ENV === 'production';
-        message = isProd
-          ? 'Terjadi kesalahan internal pada server'
-          : sanitized;
-        errors = isProd ? null : [sanitized];
+        message = 'Terjadi kesalahan internal pada server';
+        errors = null;
       }
     } else if (exception instanceof Error) {
       this.logger.error(
@@ -130,21 +120,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         exception.stack,
       );
       statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-      const sanitized = exception.message
-        ? exception.message.replace(
-            /postgresql:\/\/[^@]+@/gi,
-            'postgresql://***@',
-          )
-        : 'Terjadi kesalahan pada server';
-
-      const isProd = process.env.NODE_ENV === 'production';
-      message = isProd
-        ? 'Terjadi kesalahan internal pada server'
-        : sanitized;
-      errors = isProd ? null : [sanitized];
+      message = 'Terjadi kesalahan internal pada server';
+      errors = null;
     } else {
       this.logger.error('Unknown exception thrown', exception);
-      errors = [String(exception)];
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Terjadi kesalahan internal pada server';
+      errors = null;
     }
 
     response.status(statusCode).json({

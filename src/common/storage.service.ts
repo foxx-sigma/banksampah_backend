@@ -1,9 +1,46 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
-import { extname, join } from 'node:path';
+import { extname, resolve } from 'node:path';
 import { readFile, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+
+export function validateImageMagicBytes(buffer: Buffer): boolean {
+  if (!buffer || buffer.length < 12) {
+    return false;
+  }
+  // JPEG / JPG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return true;
+  }
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return true;
+  }
+  // WEBP: RIFF .... WEBP
+  if (
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return true;
+  }
+  return false;
+}
 
 export interface UploadableFile {
   buffer?: Buffer;
@@ -53,6 +90,21 @@ export class StorageService {
         fileBuffer = await readFile(file.path);
       } catch (err: any) {
         this.logger.error(`Gagal membaca file dari path ${file.path}: ${err.message}`);
+      }
+    }
+
+    if (fileBuffer) {
+      if (!validateImageMagicBytes(fileBuffer)) {
+        if (file.path && existsSync(file.path)) {
+          try {
+            await unlink(file.path);
+          } catch {
+            // ignore
+          }
+        }
+        throw new BadRequestException(
+          'Format berkas tidak valid: isi berkas bukan gambar JPG, PNG, atau WEBP yang sah',
+        );
       }
     }
 
@@ -129,11 +181,13 @@ export class StorageService {
       }
     }
 
-    // Fallback lokal
+    // Fallback lokal (hanya izinkan penghapusan berkas di dalam direktori uploads)
     try {
-      const localRelPath = fileUrl.replace(/^\//, '');
-      const localPath = join(process.cwd(), localRelPath);
-      if (existsSync(localPath)) {
+      const uploadRootDir = resolve(process.cwd(), 'uploads');
+      const localRelPath = fileUrl.replace(/^\/?(uploads\/)?/, '');
+      const localPath = resolve(uploadRootDir, localRelPath);
+
+      if (localPath.startsWith(uploadRootDir) && existsSync(localPath)) {
         await unlink(localPath);
         return true;
       }

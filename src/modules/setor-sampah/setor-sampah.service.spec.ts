@@ -234,5 +234,33 @@ describe('SetorSampahService', () => {
 
       expect(prismaMock.nasabah.update).not.toHaveBeenCalled();
     });
+
+    it('should throw BadRequestException if attempting to revert status from selesai to another status', async () => {
+      const alreadySelesaiSetor = {
+        ...mockSetor,
+        status: StatusSetor.selesai,
+      };
+      prismaMock.setorSampah.findFirst.mockResolvedValue(alreadySelesaiSetor);
+
+      await expect(
+        service.verify(mockAppMakerId, mockSetorId, {
+          status: StatusSetor.diverifikasi,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if transaction is already ditolak', async () => {
+      const ditolakSetor = {
+        ...mockSetor,
+        status: StatusSetor.ditolak,
+      };
+      prismaMock.setorSampah.findFirst.mockResolvedValue(ditolakSetor);
+
+      await expect(
+        service.verify(mockAppMakerId, mockSetorId, {
+          status: StatusSetor.selesai,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });
