@@ -131,6 +131,7 @@ model KategoriSampah {
 
 model SetorSampah {
   id                String      @id @default(uuid())
+  kodeSetor         String?
   appMakerId        String
   nasabahId         String
   tanggal           DateTime    @default(now())
