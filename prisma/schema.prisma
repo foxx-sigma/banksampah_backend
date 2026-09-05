@@ -191,6 +191,7 @@ model Hadiah {
 
 model PenukaranPoin {
   id            String          @id @default(uuid())
+  kodePenukaran String?
   appMakerId    String
   nasabahId     String
   hadiahId      String

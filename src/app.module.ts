@@ -21,6 +21,7 @@ import { NasabahModule } from './modules/nasabah/nasabah.module.js';
 import { KategoriSampahModule } from './modules/kategori-sampah/kategori-sampah.module.js';
 import { SetorSampahModule } from './modules/setor-sampah/setor-sampah.module.js';
 import { HadiahModule } from './modules/hadiah/hadiah.module.js';
+import { PenukaranPoinModule } from './modules/penukaran-poin/penukaran-poin.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -32,6 +33,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     KategoriSampahModule,
     SetorSampahModule,
     HadiahModule,
+    PenukaranPoinModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
