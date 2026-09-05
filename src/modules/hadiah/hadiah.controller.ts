@@ -14,6 +14,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+  ApiBearerAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname, join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -95,6 +103,12 @@ const multerHadiahOptions = {
   },
 };
 
+@ApiTags('Hadiah')
+@ApiHeader({
+  name: 'x-app-key',
+  description: 'Tenant App Key yang valid',
+  required: true,
+})
 @Controller('api/v1/hadiah')
 export class HadiahController {
   constructor(
@@ -106,6 +120,15 @@ export class HadiahController {
   @UseGuards(AppKeyGuard)
   @Get()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mendapatkan daftar katalog hadiah',
+    description:
+      'Menampilkan katalog item hadiah reward beserta jumlah poin yang dibutuhkan dan sisa stok.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Daftar katalog hadiah berhasil dimuat',
+  })
   @ResponseMessage('Daftar katalog hadiah berhasil dimuat')
   async findAll(@CurrentAppMaker('id') appMakerId: string) {
     return this.hadiahService.findAll(appMakerId);
@@ -116,6 +139,25 @@ export class HadiahController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('foto', multerHadiahOptions))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Menambahkan item hadiah baru (Admin)',
+    description:
+      'Admin menambahkan item hadiah baru ke dalam katalog reward dengan poin yang dibutuhkan dan jumlah stok.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 201,
+    description: 'Hadiah berhasil ditambahkan',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Hanya Admin yang berhak mengakses',
+  })
   @ResponseMessage('Hadiah berhasil ditambahkan')
   async create(
     @CurrentAppMaker('id') appMakerId: string,
@@ -145,6 +187,19 @@ export class HadiahController {
   @UseGuards(AppKeyGuard)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mendapatkan detail hadiah berdasarkan ID',
+    description:
+      'Menampilkan rincian informasi dan status ketersediaan item hadiah reward berdasarkan UUID.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Detail hadiah berhasil dimuat',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Data hadiah tidak ditemukan',
+  })
   @ResponseMessage('Detail hadiah berhasil dimuat')
   async findOne(
     @CurrentAppMaker('id') appMakerId: string,
@@ -158,6 +213,21 @@ export class HadiahController {
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('foto', multerHadiahOptions))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Memperbarui data hadiah (Admin)',
+    description:
+      'Admin memperbarui nama, deskripsi, poin yang dibutuhkan, stok, atau foto hadiah.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 200,
+    description: 'Hadiah berhasil diperbarui',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Data hadiah tidak ditemukan',
+  })
   @ResponseMessage('Hadiah berhasil diperbarui')
   async update(
     @CurrentAppMaker('id') appMakerId: string,
@@ -188,6 +258,20 @@ export class HadiahController {
   @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Menghapus item hadiah (Admin)',
+    description:
+      'Menghapus item hadiah dari katalog reward bank sampah.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Hadiah berhasil dihapus',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Data hadiah tidak ditemukan',
+  })
   @ResponseMessage('Hadiah berhasil dihapus')
   async remove(
     @CurrentAppMaker('id') appMakerId: string,

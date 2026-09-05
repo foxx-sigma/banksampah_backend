@@ -14,6 +14,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+  ApiBearerAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname, join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -98,6 +106,12 @@ const multerSampahOptions = {
   },
 };
 
+@ApiTags('Kategori Sampah')
+@ApiHeader({
+  name: 'x-app-key',
+  description: 'Tenant App Key yang valid',
+  required: true,
+})
 @Controller('api/v1/kategori-sampah')
 export class KategoriSampahController {
   constructor(
@@ -109,6 +123,15 @@ export class KategoriSampahController {
   @UseGuards(AppKeyGuard)
   @Get()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mendapatkan seluruh katalog kategori sampah',
+    description:
+      'Menampilkan daftar jenis sampah, harga per kg, poin per kg, dan kelompok kategori.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Daftar kategori sampah berhasil dimuat',
+  })
   @ResponseMessage('Daftar kategori sampah berhasil dimuat')
   async findAll(@CurrentAppMaker('id') appMakerId: string) {
     return this.kategoriSampahService.findAll(appMakerId);
@@ -119,6 +142,25 @@ export class KategoriSampahController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('foto', multerSampahOptions))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Menambahkan kategori sampah baru (Admin)',
+    description:
+      'Admin menambahkan jenis sampah baru dengan harga, poin, kelompok jenis, dan opsional foto.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 201,
+    description: 'Kategori sampah berhasil ditambahkan',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Hanya Admin yang berhak mengakses',
+  })
   @ResponseMessage('Kategori sampah berhasil ditambahkan')
   async create(
     @CurrentAppMaker('id') appMakerId: string,
@@ -148,6 +190,19 @@ export class KategoriSampahController {
   @UseGuards(AppKeyGuard)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mendapatkan detail kategori sampah berdasarkan ID',
+    description:
+      'Menampilkan rincian kategori sampah berdasarkan UUID kategori.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Detail kategori sampah berhasil dimuat',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Data kategori sampah tidak ditemukan',
+  })
   @ResponseMessage('Detail kategori sampah berhasil dimuat')
   async findOne(
     @CurrentAppMaker('id') appMakerId: string,
@@ -161,6 +216,21 @@ export class KategoriSampahController {
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('foto', multerSampahOptions))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Memperbarui kategori sampah (Admin)',
+    description:
+      'Admin memperbarui informasi harga, poin, kelompok, atau foto kategori sampah.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 200,
+    description: 'Kategori sampah berhasil diperbarui',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Data kategori sampah tidak ditemukan',
+  })
   @ResponseMessage('Kategori sampah berhasil diperbarui')
   async update(
     @CurrentAppMaker('id') appMakerId: string,
@@ -196,6 +266,20 @@ export class KategoriSampahController {
   @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Menghapus kategori sampah (Admin)',
+    description:
+      'Menghapus data kategori sampah dari sistem (jika belum terkait dengan riwayat transaksi).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Kategori sampah berhasil dihapus',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Data kategori sampah tidak ditemukan',
+  })
   @ResponseMessage('Kategori sampah berhasil dihapus')
   async remove(
     @CurrentAppMaker('id') appMakerId: string,

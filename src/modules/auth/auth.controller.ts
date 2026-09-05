@@ -10,6 +10,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+  ApiBearerAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname, join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -88,6 +96,12 @@ const multerNasabahOptions = {
   },
 };
 
+@ApiTags('Auth')
+@ApiHeader({
+  name: 'x-app-key',
+  description: 'Tenant App Key yang valid',
+  required: true,
+})
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(
@@ -99,6 +113,24 @@ export class AuthController {
   @Post('nasabah/register')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('foto', multerNasabahOptions))
+  @ApiOperation({
+    summary: 'Registrasi nasabah baru',
+    description:
+      'Mendaftarkan akun nasabah baru pada tenant bank sampah dengan opsional upload foto profil.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 201,
+    description: 'Registrasi nasabah berhasil',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi gagal atau format foto tidak didukung',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Username sudah terdaftar pada bank sampah ini',
+  })
   @ResponseMessage('Registrasi nasabah berhasil')
   async registerNasabah(
     @CurrentAppMaker('id') appMakerId: string,
@@ -126,6 +158,23 @@ export class AuthController {
   @Public()
   @Post('admin/register')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Registrasi admin bank sampah',
+    description:
+      'Mendaftarkan akun administrator untuk unit bank sampah (hanya satu admin unit per tenant).',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Registrasi admin berhasil',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Admin unit atau username sudah terdaftar',
+  })
   @ResponseMessage('Registrasi admin berhasil')
   async registerAdmin(
     @CurrentAppMaker('id') appMakerId: string,
@@ -137,6 +186,19 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login pengguna (Nasabah atau Admin)',
+    description:
+      'Otentikasi kredensial pengguna bank sampah dan mengembalikan JWT access token.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Login berhasil, token JWT dikembalikan',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Username atau password salah',
+  })
   @ResponseMessage('Login berhasil')
   async login(
     @CurrentAppMaker('id') appMakerId: string,
@@ -147,6 +209,24 @@ export class AuthController {
 
   @Get('me')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Mendapatkan profil pengguna yang sedang login',
+    description:
+      'Mengembalikan informasi profil user (nasabah atau admin) beserta relasi data profilnya.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profil pengguna berhasil dimuat',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token otentikasi tidak valid atau kedaluwarsa',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Pengguna tidak ditemukan',
+  })
   @ResponseMessage('Profil pengguna berhasil dimuat')
   async getMe(
     @CurrentAppMaker('id') appMakerId: string,
