@@ -23,6 +23,7 @@ import { SetorSampahModule } from './modules/setor-sampah/setor-sampah.module.js
 import { HadiahModule } from './modules/hadiah/hadiah.module.js';
 import { PenukaranPoinModule } from './modules/penukaran-poin/penukaran-poin.module.js';
 import { RekapitulasiModule } from './modules/rekapitulasi/rekapitulasi.module.js';
+import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -36,6 +37,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     HadiahModule,
     PenukaranPoinModule,
     RekapitulasiModule,
+    DashboardModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
