@@ -18,6 +18,7 @@ import {
 import { AppMakerModule } from './modules/app-maker/app-maker.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { NasabahModule } from './modules/nasabah/nasabah.module.js';
+import { KategoriSampahModule } from './modules/kategori-sampah/kategori-sampah.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -26,6 +27,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     AppMakerModule,
     AuthModule,
     NasabahModule,
+    KategoriSampahModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
