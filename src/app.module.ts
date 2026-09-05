@@ -24,6 +24,7 @@ import { HadiahModule } from './modules/hadiah/hadiah.module.js';
 import { PenukaranPoinModule } from './modules/penukaran-poin/penukaran-poin.module.js';
 import { RekapitulasiModule } from './modules/rekapitulasi/rekapitulasi.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
+import { SeedModule } from './modules/seed/seed.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -38,6 +39,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     PenukaranPoinModule,
     RekapitulasiModule,
     DashboardModule,
+    SeedModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
