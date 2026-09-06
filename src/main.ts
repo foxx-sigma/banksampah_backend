@@ -164,7 +164,10 @@ async function bootstrap() {
     customSiteTitle: 'Bank Sampah Digital API Docs',
   });
 
-  await app.listen(process.env.PORT ?? 3001);
+  const port = process.env.PORT ?? 3001;
+  console.log(`[main] Calling app.listen on port ${port}...`);
+  await app.listen(port);
+  console.log(`[main] Server is running on http://localhost:${port}`);
 }
 await bootstrap();
 
