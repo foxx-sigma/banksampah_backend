@@ -85,13 +85,7 @@ const multerHadiahOptions = {
   },
   fileFilter: (_req: any, file: any, cb: any) => {
     const rawExt = extname(file.originalname || '').toLowerCase();
-    const mime = (file.mimetype || '').toLowerCase();
-
-    if (
-      !ALLOWED_EXTENSIONS.has(rawExt) ||
-      !ALLOWED_MIME_EXT_MAP[mime] ||
-      !ALLOWED_MIME_EXT_MAP[mime].includes(rawExt)
-    ) {
+    if (!ALLOWED_EXTENSIONS.has(rawExt)) {
       return cb(
         new BadRequestException(
           'Format file foto tidak didukung (hanya JPG, PNG, atau WEBP)',

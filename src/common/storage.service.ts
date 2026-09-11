@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { extname, resolve } from 'node:path';
@@ -51,11 +51,34 @@ export interface UploadableFile {
   size?: number;
 }
 
+/**
+ * Mapping dari logical bucket key (dipakai controller) ke env var name
+ * yang menyimpan nama bucket Supabase sesungguhnya.
+ */
+const BUCKET_ENV_MAP: Record<string, string> = {
+  nasabah: 'SUPABASE_NASABAH_BUCKET',
+  'kategori-sampah': 'SUPABASE_SAMPAH_BUCKET',
+  hadiah: 'SUPABASE_HADIAH_BUCKET',
+};
+
 @Injectable()
-export class StorageService {
+export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
 
   constructor(private readonly configService: ConfigService) {}
+
+  /**
+   * Lifecycle hook: dipanggil sekali saat modul diinisialisasi.
+   * Memberikan peringatan awal jika Supabase belum dikonfigurasi.
+   */
+  onModuleInit() {
+    const { url, key } = this.getSupabaseConfig();
+    if (!url || !key) {
+      this.logger.warn(
+        'Supabase Storage belum dikonfigurasi (SUPABASE_URL/SUPABASE_KEY kosong) — seluruh upload foto akan memakai fallback local',
+      );
+    }
+  }
 
   private getSupabaseConfig() {
     const url =
@@ -65,6 +88,25 @@ export class StorageService {
       this.configService.get<string>('SUPABASE_KEY') ||
       process.env.SUPABASE_KEY;
     return { url, key };
+  }
+
+  /**
+   * Menerjemahkan logical bucket key ke nama bucket Supabase sesungguhnya
+   * yang dibaca dari environment variable. Jika env var tidak diset,
+   * fallback ke logical key itu sendiri (backward-compatible).
+   */
+  resolveSupabaseBucket(logicalKey: string): string {
+    const envVarName = BUCKET_ENV_MAP[logicalKey];
+    if (envVarName) {
+      const envValue =
+        this.configService.get<string>(envVarName) ||
+        process.env[envVarName];
+      if (envValue) {
+        return envValue;
+      }
+    }
+    // Fallback: pakai logical key sebagai nama bucket
+    return logicalKey;
   }
 
   async uploadFile(
@@ -108,10 +150,13 @@ export class StorageService {
       }
     }
 
+    // Resolve nama bucket Supabase dari env (logical key tetap dipakai untuk path lokal)
+    const supabaseBucket = this.resolveSupabaseBucket(bucket);
+
     // Jika konfigurasi Supabase tersedia dan buffer ada, upload ke Supabase Storage
     if (url && key && fileBuffer) {
       try {
-        const uploadEndpoint = `${url.replace(/\/$/, '')}/storage/v1/object/${bucket}/${filename}`;
+        const uploadEndpoint = `${url.replace(/\/$/, '')}/storage/v1/object/${supabaseBucket}/${filename}`;
         const response = await fetch(uploadEndpoint, {
           method: 'POST',
           headers: {
@@ -132,22 +177,31 @@ export class StorageService {
               // ignore
             }
           }
-          const publicUrl = `${url.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${filename}`;
+          const publicUrl = `${url.replace(/\/$/, '')}/storage/v1/object/public/${supabaseBucket}/${filename}`;
           return publicUrl;
         } else {
           const errText = await response.text();
-          this.logger.warn(
-            `Supabase Storage upload gagal (status ${response.status}): ${errText}. Menggunakan file lokal.`,
+          this.logger.error(
+            `Supabase Storage upload GAGAL — ` +
+            `storage_fallback_used: true | ` +
+            `bucket: "${supabaseBucket}" (logical key: "${bucket}") | ` +
+            `status: ${response.status} | ` +
+            `response: ${errText}. ` +
+            `Menggunakan fallback penyimpanan lokal.`,
           );
         }
       } catch (err: any) {
-        this.logger.warn(
-          `Supabase Storage upload error: ${err.message}. Menggunakan file lokal.`,
+        this.logger.error(
+          `Supabase Storage upload ERROR — ` +
+          `storage_fallback_used: true | ` +
+          `bucket: "${supabaseBucket}" (logical key: "${bucket}") | ` +
+          `error: ${err.message}. ` +
+          `Menggunakan fallback penyimpanan lokal.`,
         );
       }
     }
 
-    // Fallback: URL statis lokal
+    // Fallback: URL statis lokal (tetap pakai logical key untuk struktur folder)
     if (file.filename) {
       return `/uploads/${bucket}/${file.filename}`;
     }
@@ -184,7 +238,7 @@ export class StorageService {
     // Fallback lokal (hanya izinkan penghapusan berkas di dalam direktori uploads)
     try {
       const uploadRootDir = resolve(process.cwd(), 'uploads');
-      const localRelPath = fileUrl.replace(/^\/?(uploads\/)?/, '');
+      const localRelPath = fileUrl.replace(/^\/?(?:uploads\/)?/, '');
       const localPath = resolve(uploadRootDir, localRelPath);
 
       if (localPath.startsWith(uploadRootDir) && existsSync(localPath)) {

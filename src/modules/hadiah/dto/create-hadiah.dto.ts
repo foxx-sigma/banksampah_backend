@@ -7,12 +7,14 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class CreateHadiahDto {
   @ApiProperty({
     description: 'Nama item hadiah katalog reward',
     example: 'Tumbler Stainless Eco 500ml',
   })
+  @SanitizeText()
   @IsString({ message: 'Nama hadiah harus berupa string' })
   @IsNotEmpty({ message: 'Nama hadiah tidak boleh kosong' })
   namaHadiah: string;
@@ -22,6 +24,7 @@ export class CreateHadiahDto {
     example: 'Tumbler ramah lingkungan berbahan stainless steel tahan panas/dingin',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'Deskripsi harus berupa string' })
   deskripsi?: string;
 

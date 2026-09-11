@@ -1,11 +1,13 @@
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class RegisterAdminBankDto {
   @ApiProperty({
     description: 'Username akun admin bank sampah',
     example: 'admin_utama',
   })
+  @SanitizeText()
   @IsString({ message: 'Username harus berupa string' })
   @IsNotEmpty({ message: 'Username tidak boleh kosong' })
   username: string;
@@ -24,6 +26,7 @@ export class RegisterAdminBankDto {
     description: 'Nama unit bank sampah',
     example: 'Bank Sampah Unit Berkah Mandiri',
   })
+  @SanitizeText()
   @IsString({ message: 'Nama unit harus berupa string' })
   @IsNotEmpty({ message: 'Nama unit tidak boleh kosong' })
   namaUnit: string;
@@ -32,6 +35,7 @@ export class RegisterAdminBankDto {
     description: 'Nama lengkap pengelola / ketua admin',
     example: 'Siti Rahmawati',
   })
+  @SanitizeText()
   @IsString({ message: 'Nama pengelola harus berupa string' })
   @IsNotEmpty({ message: 'Nama pengelola tidak boleh kosong' })
   namaPengelola: string;
@@ -40,6 +44,7 @@ export class RegisterAdminBankDto {
     description: 'Nomor kontak telepon / WhatsApp admin',
     example: '081398765432',
   })
+  @SanitizeText()
   @IsString({ message: 'Nomor telepon harus berupa string' })
   @IsNotEmpty({ message: 'Nomor telepon tidak boleh kosong' })
   telp: string;

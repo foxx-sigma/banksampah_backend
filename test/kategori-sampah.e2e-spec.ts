@@ -63,6 +63,17 @@ describe('KategoriSampahController (e2e)', () => {
         update: vi.fn(),
         delete: vi.fn(),
       },
+      user: {
+        findUnique: vi.fn().mockImplementation((args: any) => {
+          if (args.where?.id === 'admin-user-1') {
+            return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          }
+          if (args.where?.id === 'nasabah-user-1') {
+            return Promise.resolve({ id: 'nasabah-user-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          return Promise.resolve(null);
+        }),
+      },
     };
 
     storageMock = {

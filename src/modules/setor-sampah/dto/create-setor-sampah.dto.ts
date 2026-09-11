@@ -7,6 +7,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 import { ItemSetorDto } from './item-setor.dto.js';
 
 export class CreateSetorSampahDto {
@@ -23,6 +24,7 @@ export class CreateSetorSampahDto {
     example: 'Kardus sudah diikat rapi dan botol sudah dibersihkan',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'catatan harus berupa string' })
   catatan?: string;
 

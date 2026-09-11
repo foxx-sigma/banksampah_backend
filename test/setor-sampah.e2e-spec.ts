@@ -126,6 +126,20 @@ describe('SetorSampahController (e2e)', () => {
       detailSetor: {
         update: vi.fn(),
       },
+      user: {
+        findUnique: vi.fn().mockImplementation((args: any) => {
+          if (args.where?.id === 'admin-1') {
+            return Promise.resolve({ id: 'admin-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          }
+          if (args.where?.id === 'user-nasabah-1') {
+            return Promise.resolve({ id: 'user-nasabah-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          if (args.where?.id === 'user-nasabah-2') {
+            return Promise.resolve({ id: 'user-nasabah-2', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          return Promise.resolve(null);
+        }),
+      },
       $transaction: vi.fn((callback) => callback(prismaMock)),
     };
 

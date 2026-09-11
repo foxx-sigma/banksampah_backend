@@ -65,7 +65,15 @@ describe('NasabahController (e2e)', () => {
         }),
       },
       user: {
-        findUnique: vi.fn(),
+        findUnique: vi.fn().mockImplementation((args: any) => {
+          if (args.where?.id === 'admin-user-1') {
+            return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          }
+          if (args.where?.id === 'nasabah-user-1') {
+            return Promise.resolve({ id: 'nasabah-user-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          return Promise.resolve(null);
+        }),
         create: vi.fn(),
         delete: vi.fn(),
       },
@@ -181,7 +189,12 @@ describe('NasabahController (e2e)', () => {
 
   describe('POST /api/v1/admin/nasabah', () => {
     it('should create new nasabah with photo upload (201)', async () => {
-      prismaMock.user.findUnique.mockResolvedValue(null);
+      prismaMock.user.findUnique.mockImplementation((args: any) => {
+        if (args.where?.id === 'admin-user-1') {
+          return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+        }
+        return Promise.resolve(null);
+      });
       prismaMock.user.create.mockResolvedValue({
         id: 'new-user-id',
         username: 'sitirahma',
@@ -232,7 +245,15 @@ describe('NasabahController (e2e)', () => {
     });
 
     it('should return 409 Conflict if username already registered in tenant', async () => {
-      prismaMock.user.findUnique.mockResolvedValue({ id: 'existing-user' });
+      prismaMock.user.findUnique.mockImplementation((args: any) => {
+        if (args.where?.id === 'admin-user-1') {
+          return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+        }
+        if (args.where?.appMakerId_username) {
+          return Promise.resolve({ id: 'existing-user' });
+        }
+        return Promise.resolve(null);
+      });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/admin/nasabah')

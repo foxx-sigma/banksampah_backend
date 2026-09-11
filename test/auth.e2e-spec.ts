@@ -62,6 +62,7 @@ describe('AuthController (e2e)', () => {
         create: vi.fn(),
       },
       adminBank: {
+        findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn(),
       },
       $transaction: vi.fn((callback) => callback(prismaMock)),
@@ -185,6 +186,12 @@ describe('AuthController (e2e)', () => {
         }),
       );
 
+      // Real JPEG magic bytes (FF D8 FF E0) followed by filler
+      const jpegBuffer = Buffer.from([
+        0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+        0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+      ]);
+
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
         .set('x-app-key', mockAppMaker.appKey)
@@ -193,7 +200,7 @@ describe('AuthController (e2e)', () => {
         .field('namaNasabah', 'Siti Rahma')
         .field('alamat', 'Jl. Kenanga No. 5')
         .field('telp', '08987654321')
-        .attach('foto', Buffer.from('fake image data'), {
+        .attach('foto', jpegBuffer, {
           filename: 'avatar.jpg',
           contentType: 'image/jpeg',
         })
@@ -201,10 +208,10 @@ describe('AuthController (e2e)', () => {
 
       expect(res.body.statusCode).toBe(201);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.nasabah.foto).toMatch(/^\/uploads\/nasabah\/.+\.jpg$/);
+      expect(res.body.data.nasabah.foto).toMatch(/^(\/uploads\/nasabah\/.+|https?:\/\/.+)\.(jpg|jpeg|png|webp)/i);
     });
 
-    it('should reject file upload if extension is not allowed (e.g. .html disguised as image)', async () => {
+    it('should reject file upload if extension is not allowed (e.g. .html)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
         .set('x-app-key', mockAppMaker.appKey)
@@ -222,6 +229,27 @@ describe('AuthController (e2e)', () => {
       expect(res.body.statusCode).toBe(400);
       expect(res.body.message).toBe(
         'Format file foto tidak didukung (hanya JPG, PNG, atau WEBP)',
+      );
+    });
+
+    it('should reject file with valid extension but invalid binary content (magic bytes)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/nasabah/register')
+        .set('x-app-key', mockAppMaker.appKey)
+        .field('username', 'fakephoto')
+        .field('password', 'password123')
+        .field('namaNasabah', 'Fake Photo')
+        .field('alamat', 'Jl. Palsu')
+        .field('telp', '08123456789')
+        .attach('foto', Buffer.from('this is not a real image'), {
+          filename: 'fake.jpg',
+          contentType: 'image/jpeg',
+        })
+        .expect(400);
+
+      expect(res.body.statusCode).toBe(400);
+      expect(res.body.message).toBe(
+        'Format berkas tidak valid: isi berkas bukan gambar JPG, PNG, atau WEBP yang sah',
       );
     });
 

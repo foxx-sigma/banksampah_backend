@@ -1,5 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class CreatePenukaranPoinDto {
   @ApiProperty({
@@ -15,6 +16,7 @@ export class CreatePenukaranPoinDto {
     example: 'Tolong siapkan warna hitam jika tersedia',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'catatan harus berupa string' })
   catatan?: string;
 }

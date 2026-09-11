@@ -61,6 +61,17 @@ describe('DashboardController (e2e)', () => {
         findMany: vi.fn(),
         findFirst: vi.fn(),
       },
+      user: {
+        findUnique: vi.fn().mockImplementation((args: any) => {
+          if (args.where?.id === 'admin-1') {
+            return Promise.resolve({ id: 'admin-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          }
+          if (args.where?.id === mockNasabah.userId) {
+            return Promise.resolve({ id: mockNasabah.userId, appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          return Promise.resolve(null);
+        }),
+      },
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({

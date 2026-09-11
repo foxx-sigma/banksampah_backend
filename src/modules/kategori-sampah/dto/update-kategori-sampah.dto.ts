@@ -9,6 +9,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { JenisSampah } from '@prisma/client';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class UpdateKategoriSampahDto {
   @ApiPropertyOptional({
@@ -16,6 +17,7 @@ export class UpdateKategoriSampahDto {
     example: 'Botol Plastik PET Bersih',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'Nama kategori harus berupa string' })
   @IsNotEmpty({ message: 'Nama kategori tidak boleh kosong' })
   namaKategori?: string;

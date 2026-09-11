@@ -99,6 +99,7 @@ describe('PenukaranPoinController (e2e)', () => {
           return Promise.resolve(null);
         }),
         update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       hadiah: {
         findFirst: vi.fn().mockImplementation((args: any) => {
@@ -108,12 +109,27 @@ describe('PenukaranPoinController (e2e)', () => {
           return Promise.resolve(null);
         }),
         update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       penukaranPoin: {
         findFirst: vi.fn(),
         findMany: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
+      },
+      user: {
+        findUnique: vi.fn().mockImplementation((args: any) => {
+          if (args.where?.id === 'admin-1') {
+            return Promise.resolve({ id: 'admin-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          }
+          if (args.where?.id === mockNasabahUser.id) {
+            return Promise.resolve({ id: mockNasabahUser.id, appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          if (args.where?.id === otherNasabahUser.id) {
+            return Promise.resolve({ id: otherNasabahUser.id, appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          return Promise.resolve(null);
+        }),
       },
       $transaction: vi.fn((callback) => callback(prismaMock)),
     };
@@ -214,12 +230,20 @@ describe('PenukaranPoinController (e2e)', () => {
       expect(res.body.message).toBe('Penukaran poin berhasil diajukan');
       expect(res.body.data.poinDigunakan).toBe(100);
       expect(res.body.data.kodePenukaran).toMatch(/^TKR-\d{6}-[A-Z0-9]{4}$/);
-      expect(prismaMock.nasabah.update).toHaveBeenCalledWith({
-        where: { id: mockNasabahUser.nasabah.id },
+      expect(prismaMock.nasabah.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: mockNasabahUser.nasabah.id,
+          appMakerId: mockAppMaker.id,
+          saldoPoin: { gte: mockHadiah.poinDibutuhkan },
+        },
         data: { saldoPoin: { decrement: 100 } },
       });
-      expect(prismaMock.hadiah.update).toHaveBeenCalledWith({
-        where: { id: mockHadiah.id },
+      expect(prismaMock.hadiah.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: mockHadiah.id,
+          appMakerId: mockAppMaker.id,
+          stok: { gte: 1 },
+        },
         data: { stok: { decrement: 1 } },
       });
     });

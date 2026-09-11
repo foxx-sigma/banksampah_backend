@@ -1,5 +1,6 @@
 import { IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class UpdateNasabahDto {
   @ApiPropertyOptional({
@@ -7,6 +8,7 @@ export class UpdateNasabahDto {
     example: 'Budi Santoso',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'Nama lengkap harus berupa string' })
   namaLengkap?: string;
 
@@ -15,6 +17,7 @@ export class UpdateNasabahDto {
     example: 'Budi Santoso',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'Nama nasabah harus berupa string' })
   namaNasabah?: string;
 
@@ -23,6 +26,7 @@ export class UpdateNasabahDto {
     example: '081298765432',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'Nomor telepon harus berupa string' })
   noTelepon?: string;
 
@@ -31,6 +35,7 @@ export class UpdateNasabahDto {
     example: '081298765432',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'Nomor telepon harus berupa string' })
   telp?: string;
 
@@ -39,6 +44,7 @@ export class UpdateNasabahDto {
     example: 'Jl. Merdeka No. 12',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'Alamat harus berupa string' })
   alamat?: string;
 

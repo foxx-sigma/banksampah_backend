@@ -8,6 +8,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StatusSetor } from '@prisma/client';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 import { VerifyItemSetorDto } from './verify-item-setor.dto.js';
 
 export class VerifySetorSampahDto {
@@ -27,6 +28,7 @@ export class VerifySetorSampahDto {
     example: 'Penimbangan selesai, poin telah ditambahkan ke saldo nasabah',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'catatanAdmin harus berupa string' })
   catatanAdmin?: string;
 

@@ -5,12 +5,14 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class CreateNasabahDto {
   @ApiProperty({
     description: 'Username unik nasabah',
     example: 'nasabah_budi',
   })
+  @SanitizeText()
   @IsString({ message: 'Username harus berupa string' })
   @IsNotEmpty({ message: 'Username tidak boleh kosong' })
   username: string;
@@ -29,6 +31,7 @@ export class CreateNasabahDto {
     description: 'Nama nasabah',
     example: 'Budi Santoso',
   })
+  @SanitizeText()
   @IsString({ message: 'Nama nasabah harus berupa string' })
   @IsNotEmpty({ message: 'Nama nasabah tidak boleh kosong' })
   namaNasabah: string;
@@ -37,6 +40,7 @@ export class CreateNasabahDto {
     description: 'Alamat tempat tinggal nasabah',
     example: 'Jl. Merdeka No. 10',
   })
+  @SanitizeText()
   @IsString({ message: 'Alamat harus berupa string' })
   @IsNotEmpty({ message: 'Alamat tidak boleh kosong' })
   alamat: string;
@@ -45,6 +49,7 @@ export class CreateNasabahDto {
     description: 'Nomor telepon nasabah',
     example: '081298765432',
   })
+  @SanitizeText()
   @IsString({ message: 'Nomor telepon harus berupa string' })
   @IsNotEmpty({ message: 'Nomor telepon tidak boleh kosong' })
   telp: string;
@@ -70,6 +75,7 @@ export class CreateNasabahDto {
     example: 'Budi Santoso',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString()
   namaLengkap?: string;
 
@@ -78,6 +84,7 @@ export class CreateNasabahDto {
     example: '081298765432',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString()
   noTelepon?: string;
 }

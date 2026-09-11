@@ -1,6 +1,7 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StatusPenukaran } from '@prisma/client';
+import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class UpdateStatusPenukaranDto {
   @ApiProperty({
@@ -18,6 +19,7 @@ export class UpdateStatusPenukaranDto {
     example: 'Hadiah telah diambil langsung oleh nasabah di kantor bank sampah',
   })
   @IsOptional()
+  @SanitizeText()
   @IsString({ message: 'catatan harus berupa string' })
   catatan?: string;
 }

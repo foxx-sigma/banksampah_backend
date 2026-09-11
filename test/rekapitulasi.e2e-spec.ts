@@ -38,6 +38,17 @@ describe('RekapitulasiController (e2e)', () => {
       penukaranPoin: {
         findMany: vi.fn(),
       },
+      user: {
+        findUnique: vi.fn().mockImplementation((args: any) => {
+          if (args.where?.id === 'admin-1') {
+            return Promise.resolve({ id: 'admin-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          }
+          if (args.where?.id === 'nasabah-1') {
+            return Promise.resolve({ id: 'nasabah-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+          }
+          return Promise.resolve(null);
+        }),
+      },
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({

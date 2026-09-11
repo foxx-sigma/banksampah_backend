@@ -51,6 +51,8 @@ async function bootstrap() {
     }
   }
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -58,8 +60,8 @@ async function bootstrap() {
         directives: {
           defaultSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: isProduction ? ["'self'"] : ["'self'", "'unsafe-inline'"],
+          styleSrc: isProduction ? ["'self'"] : ["'self'", "'unsafe-inline'"],
           objectSrc: ["'none'"],
         },
       },
@@ -120,49 +122,51 @@ async function bootstrap() {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Bank Sampah Digital API')
-    .setDescription(
-      'Dokumentasi OpenAPI / Swagger untuk backend Bank Sampah Digital. Menyediakan endpoints multi-tenant (App Maker), registrasi & autentikasi (Admin & Nasabah), manajemen data nasabah, katalog jenis sampah, pengajuan & verifikasi setoran sampah, katalog hadiah reward, penukaran poin, rekapitulasi bulanan, dasbor, dan seeding data.',
-    )
-    .setVersion('0.0.1')
-    .addApiKey(
-      {
-        type: 'apiKey',
-        name: 'x-app-key',
-        in: 'header',
-        description: 'Tenant App Key yang dikirimkan pada header x-app-key',
-      },
-      'x-app-key',
-    )
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Masukkan JWT Token (tanpa prefix Bearer) yang diperoleh setelah login',
-      },
-      'JWT-auth',
-    )
-    .addTag('App Maker', 'Manajemen tenant aplikasi dan profil App Maker')
-    .addTag('Auth', 'Registrasi dan otentikasi login nasabah dan admin bank sampah')
-    .addTag('Admin Nasabah', 'Manajemen data nasabah oleh admin bank sampah')
-    .addTag('Kategori Sampah', 'Katalog kategori jenis sampah, harga, dan poin per kg')
-    .addTag('Setor Sampah', 'Pengajuan dan verifikasi transaksi penyetoran sampah')
-    .addTag('Hadiah', 'Katalog hadiah reward penukaran poin')
-    .addTag('Penukaran Poin', 'Pengajuan, pemrosesan, dan nota penukaran poin hadiah')
-    .addTag('Rekapitulasi', 'Laporan rekapitulasi transaksi bulanan')
-    .addTag('Dashboard', 'Statistik dan ringkasan dasbor nasabah maupun agregat')
-    .addTag('Seed', 'Inisialisasi data dummy untuk kemudahan pengujian')
-    .build();
+  if (!isProduction || process.env.ENABLE_SWAGGER === 'true') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Bank Sampah Digital API')
+      .setDescription(
+        'Dokumentasi OpenAPI / Swagger untuk backend Bank Sampah Digital. Menyediakan endpoints multi-tenant (App Maker), registrasi & autentikasi (Admin & Nasabah), manajemen data nasabah, katalog jenis sampah, pengajuan & verifikasi setoran sampah, katalog hadiah reward, penukaran poin, rekapitulasi bulanan, dasbor, dan seeding data.',
+      )
+      .setVersion('0.0.1')
+      .addApiKey(
+        {
+          type: 'apiKey',
+          name: 'x-app-key',
+          in: 'header',
+          description: 'Tenant App Key yang dikirimkan pada header x-app-key',
+        },
+        'x-app-key',
+      )
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Masukkan JWT Token (tanpa prefix Bearer) yang diperoleh setelah login',
+        },
+        'JWT-auth',
+      )
+      .addTag('App Maker', 'Manajemen tenant aplikasi dan profil App Maker')
+      .addTag('Auth', 'Registrasi dan otentikasi login nasabah dan admin bank sampah')
+      .addTag('Admin Nasabah', 'Manajemen data nasabah oleh admin bank sampah')
+      .addTag('Kategori Sampah', 'Katalog kategori jenis sampah, harga, dan poin per kg')
+      .addTag('Setor Sampah', 'Pengajuan dan verifikasi transaksi penyetoran sampah')
+      .addTag('Hadiah', 'Katalog hadiah reward penukaran poin')
+      .addTag('Penukaran Poin', 'Pengajuan, pemrosesan, dan nota penukaran poin hadiah')
+      .addTag('Rekapitulasi', 'Laporan rekapitulasi transaksi bulanan')
+      .addTag('Dashboard', 'Statistik dan ringkasan dasbor nasabah maupun agregat')
+      .addTag('Seed', 'Inisialisasi data dummy untuk kemudahan pengujian')
+      .build();
 
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, swaggerDocument, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-    customSiteTitle: 'Bank Sampah Digital API Docs',
-  });
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, swaggerDocument, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+      customSiteTitle: 'Bank Sampah Digital API Docs',
+    });
+  }
 
   const port = process.env.PORT ?? 3001;
   console.log(`[main] Calling app.listen on port ${port}...`);
