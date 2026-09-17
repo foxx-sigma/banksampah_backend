@@ -11,19 +11,9 @@ describe('DashboardController (e2e)', () => {
   let prismaMock: any;
   let jwtService: JwtService;
 
-  const mockAppMaker = {
-    id: 'tenant-dash-1',
-    appKey: 'app-key-dash-12345',
-    email: 'admindash@example.com',
-    namaSiswa: 'Siswa Dashboard',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
   const mockNasabah = {
     id: 'nasabah-dash-1',
     userId: 'user-nasabah-1',
-    appMakerId: mockAppMaker.id,
     namaNasabah: 'Budi Santoso',
     saldoPoin: 1500,
   };
@@ -33,12 +23,6 @@ describe('DashboardController (e2e)', () => {
 
   beforeEach(async () => {
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) return Promise.resolve(mockAppMaker);
-          return Promise.resolve(null);
-        }),
-      },
       nasabah: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where.userId === mockNasabah.userId) return Promise.resolve(mockNasabah);
@@ -64,10 +48,10 @@ describe('DashboardController (e2e)', () => {
       user: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where?.id === 'admin-1') {
-            return Promise.resolve({ id: 'admin-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+            return Promise.resolve({ id: 'admin-1', role: 'ADMIN' });
           }
           if (args.where?.id === mockNasabah.userId) {
-            return Promise.resolve({ id: mockNasabah.userId, appMakerId: mockAppMaker.id, role: 'NASABAH' });
+            return Promise.resolve({ id: mockNasabah.userId, role: 'NASABAH' });
           }
           return Promise.resolve(null);
         }),
@@ -98,7 +82,6 @@ describe('DashboardController (e2e)', () => {
       userId: 'admin-1',
       username: 'admin1',
       role: 'ADMIN',
-      appMakerId: mockAppMaker.id,
     });
 
     nasabahToken = await jwtService.signAsync({
@@ -106,7 +89,6 @@ describe('DashboardController (e2e)', () => {
       userId: mockNasabah.userId,
       username: 'budi',
       role: 'NASABAH',
-      appMakerId: mockAppMaker.id,
     });
   });
 
@@ -115,20 +97,9 @@ describe('DashboardController (e2e)', () => {
   });
 
   describe('GET /api/v1/dashboard/summary', () => {
-    it('should return 401 if x-app-key is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/dashboard/summary')
-        .set('Authorization', `Bearer ${nasabahToken}`)
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
     it('should return 401 if Authorization header is missing', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/dashboard/summary')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(401);
 
       expect(res.body.statusCode).toBe(401);
@@ -138,7 +109,6 @@ describe('DashboardController (e2e)', () => {
     it('should return 403 Forbidden if accessed by role ADMIN', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/dashboard/summary')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(403);
 
@@ -176,7 +146,6 @@ describe('DashboardController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/dashboard/summary')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .expect(200);
 
@@ -193,16 +162,7 @@ describe('DashboardController (e2e)', () => {
   });
 
   describe('GET /api/v1/dashboard/stats', () => {
-    it('should return 401 if x-app-key is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/dashboard/stats')
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
-    it('should return stats successfully with only x-app-key header (200)', async () => {
+    it('should return stats successfully (200)', async () => {
       prismaMock.nasabah.count.mockResolvedValue(25);
       prismaMock.kategoriSampah.count.mockResolvedValue(6);
       prismaMock.setorSampah.count.mockResolvedValue(40);
@@ -219,7 +179,6 @@ describe('DashboardController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/dashboard/stats')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);

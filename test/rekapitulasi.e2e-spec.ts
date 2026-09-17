@@ -12,26 +12,11 @@ describe('RekapitulasiController (e2e)', () => {
   let prismaMock: any;
   let jwtService: JwtService;
 
-  const mockAppMaker = {
-    id: 'tenant-rekap-1',
-    appKey: 'app-key-rekap-12345',
-    email: 'adminrekap@example.com',
-    namaSiswa: 'Siswa Rekap',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
   let adminToken: string;
   let nasabahToken: string;
 
   beforeEach(async () => {
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) return Promise.resolve(mockAppMaker);
-          return Promise.resolve(null);
-        }),
-      },
       setorSampah: {
         findMany: vi.fn(),
       },
@@ -41,10 +26,10 @@ describe('RekapitulasiController (e2e)', () => {
       user: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where?.id === 'admin-1') {
-            return Promise.resolve({ id: 'admin-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+            return Promise.resolve({ id: 'admin-1', role: 'ADMIN' });
           }
           if (args.where?.id === 'nasabah-1') {
-            return Promise.resolve({ id: 'nasabah-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+            return Promise.resolve({ id: 'nasabah-1', role: 'NASABAH' });
           }
           return Promise.resolve(null);
         }),
@@ -75,7 +60,6 @@ describe('RekapitulasiController (e2e)', () => {
       userId: 'admin-1',
       username: 'admin1',
       role: 'ADMIN',
-      appMakerId: mockAppMaker.id,
     });
 
     nasabahToken = await jwtService.signAsync({
@@ -83,7 +67,6 @@ describe('RekapitulasiController (e2e)', () => {
       userId: 'nasabah-1',
       username: 'nasabah1',
       role: 'NASABAH',
-      appMakerId: mockAppMaker.id,
     });
   });
 
@@ -92,20 +75,9 @@ describe('RekapitulasiController (e2e)', () => {
   });
 
   describe('GET /api/v1/rekapitulasi/bulanan', () => {
-    it('should return 401 if x-app-key is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/rekapitulasi/bulanan?bulan=2026-09')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
     it('should return 401 if Authorization header is missing', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/rekapitulasi/bulanan?bulan=2026-09')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(401);
 
       expect(res.body.statusCode).toBe(401);
@@ -115,7 +87,6 @@ describe('RekapitulasiController (e2e)', () => {
     it('should return 403 Forbidden if accessed by role NASABAH', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/rekapitulasi/bulanan?bulan=2026-09')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .expect(403);
 
@@ -126,7 +97,6 @@ describe('RekapitulasiController (e2e)', () => {
     it('should return 400 Bad Request if bulan query parameter is missing', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/rekapitulasi/bulanan')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(400);
 
@@ -137,7 +107,6 @@ describe('RekapitulasiController (e2e)', () => {
     it('should return 400 Bad Request if bulan query parameter has invalid format', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/rekapitulasi/bulanan?bulan=2026-9')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(400);
 
@@ -149,7 +118,6 @@ describe('RekapitulasiController (e2e)', () => {
       prismaMock.setorSampah.findMany.mockResolvedValue([
         {
           id: 'setor-1',
-          appMakerId: mockAppMaker.id,
           status: 'selesai',
           tanggal: new Date('2026-09-15'),
           detailSetor: [
@@ -180,7 +148,6 @@ describe('RekapitulasiController (e2e)', () => {
       prismaMock.penukaranPoin.findMany.mockResolvedValue([
         {
           id: 'tukar-1',
-          appMakerId: mockAppMaker.id,
           status: 'selesai',
           poinDigunakan: 150,
         },
@@ -188,7 +155,6 @@ describe('RekapitulasiController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/rekapitulasi/bulanan?bulan=2026-09')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 

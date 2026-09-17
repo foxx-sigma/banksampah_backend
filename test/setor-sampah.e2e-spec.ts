@@ -12,20 +12,6 @@ describe('SetorSampahController (e2e)', () => {
   let prismaMock: any;
   let jwtService: JwtService;
 
-  const mockAppMaker = {
-    id: 'tenant-setor-1',
-    appKey: 'app-key-setor-12345',
-    email: 'adminsetor@example.com',
-    namaSiswa: 'Siswa Setor',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
-  const otherAppMaker = {
-    id: 'tenant-setor-2',
-    appKey: 'app-key-setor-99999',
-  };
-
   let adminToken: string;
   let nasabahToken: string;
   let otherNasabahToken: string;
@@ -33,11 +19,9 @@ describe('SetorSampahController (e2e)', () => {
   const mockNasabahUser = {
     id: 'user-nasabah-1',
     userId: 'user-nasabah-1',
-    appMakerId: mockAppMaker.id,
     nasabah: {
       id: 'nasabah-uuid-1',
       userId: 'user-nasabah-1',
-      appMakerId: mockAppMaker.id,
       namaNasabah: 'Budi Nasabah',
       alamat: 'Jl. Melati 1',
       telp: '08123456789',
@@ -48,11 +32,9 @@ describe('SetorSampahController (e2e)', () => {
   const otherNasabahUser = {
     id: 'user-nasabah-2',
     userId: 'user-nasabah-2',
-    appMakerId: mockAppMaker.id,
     nasabah: {
       id: 'nasabah-uuid-2',
       userId: 'user-nasabah-2',
-      appMakerId: mockAppMaker.id,
       namaNasabah: 'Siti Nasabah',
       alamat: 'Jl. Kenanga 2',
       telp: '08987654321',
@@ -62,7 +44,6 @@ describe('SetorSampahController (e2e)', () => {
 
   const mockKategori = {
     id: 'kat-1',
-    appMakerId: mockAppMaker.id,
     namaKategori: 'Botol Plastik PET',
     poinPerKg: 10,
     hargaPerKg: 3000,
@@ -71,7 +52,6 @@ describe('SetorSampahController (e2e)', () => {
   const mockSetor = {
     id: 'setor-trans-1',
     kodeSetor: 'STR-202609-A1B2',
-    appMakerId: mockAppMaker.id,
     nasabahId: mockNasabahUser.nasabah.id,
     tanggal: new Date(),
     totalBeratKg: 5,
@@ -94,13 +74,6 @@ describe('SetorSampahController (e2e)', () => {
 
   beforeEach(async () => {
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) return Promise.resolve(mockAppMaker);
-          if (args.where.appKey === otherAppMaker.appKey) return Promise.resolve(otherAppMaker);
-          return Promise.resolve(null);
-        }),
-      },
       nasabah: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where.userId === mockNasabahUser.id) return Promise.resolve(mockNasabahUser.nasabah);
@@ -111,7 +84,7 @@ describe('SetorSampahController (e2e)', () => {
       },
       kategoriSampah: {
         findFirst: vi.fn().mockImplementation((args: any) => {
-          if (args.where.id === mockKategori.id && args.where.appMakerId === mockAppMaker.id) {
+          if (args.where.id === mockKategori.id) {
             return Promise.resolve(mockKategori);
           }
           return Promise.resolve(null);
@@ -129,13 +102,13 @@ describe('SetorSampahController (e2e)', () => {
       user: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where?.id === 'admin-1') {
-            return Promise.resolve({ id: 'admin-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+            return Promise.resolve({ id: 'admin-1', role: 'ADMIN' });
           }
           if (args.where?.id === 'user-nasabah-1') {
-            return Promise.resolve({ id: 'user-nasabah-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+            return Promise.resolve({ id: 'user-nasabah-1', role: 'NASABAH' });
           }
           if (args.where?.id === 'user-nasabah-2') {
-            return Promise.resolve({ id: 'user-nasabah-2', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+            return Promise.resolve({ id: 'user-nasabah-2', role: 'NASABAH' });
           }
           return Promise.resolve(null);
         }),
@@ -167,7 +140,6 @@ describe('SetorSampahController (e2e)', () => {
       userId: 'admin-1',
       username: 'admin1',
       role: 'ADMIN',
-      appMakerId: mockAppMaker.id,
     });
 
     nasabahToken = await jwtService.signAsync({
@@ -175,7 +147,6 @@ describe('SetorSampahController (e2e)', () => {
       userId: mockNasabahUser.id,
       username: 'budinasabah',
       role: 'NASABAH',
-      appMakerId: mockAppMaker.id,
     });
 
     otherNasabahToken = await jwtService.signAsync({
@@ -183,7 +154,6 @@ describe('SetorSampahController (e2e)', () => {
       userId: otherNasabahUser.id,
       username: 'sitinasabah',
       role: 'NASABAH',
-      appMakerId: mockAppMaker.id,
     });
   });
 
@@ -192,23 +162,9 @@ describe('SetorSampahController (e2e)', () => {
   });
 
   describe('POST /api/v1/setor-sampah/pengajuan', () => {
-    it('should return 401 if x-app-key header is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/setor-sampah/pengajuan')
-        .set('Authorization', `Bearer ${nasabahToken}`)
-        .send({
-          items: [{ kategoriSampahId: mockKategori.id, beratKg: 2 }],
-        })
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
     it('should return 403 Forbidden if called by ADMIN', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/setor-sampah/pengajuan')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           items: [{ kategoriSampahId: mockKategori.id, beratKg: 2 }],
@@ -230,7 +186,6 @@ describe('SetorSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/setor-sampah/pengajuan')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .send({
           catatan: 'Tolong timbang teliti',
@@ -253,7 +208,6 @@ describe('SetorSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/setor-sampah/my-setor?bulan=2026-09')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .expect(200);
 
@@ -267,7 +221,6 @@ describe('SetorSampahController (e2e)', () => {
     it('should return 403 Forbidden if accessed by ADMIN', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/setor-sampah/my-setor')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(403);
 
@@ -281,7 +234,6 @@ describe('SetorSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/setor-sampah/admin/list?status=menunggu_konfirmasi')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -294,7 +246,6 @@ describe('SetorSampahController (e2e)', () => {
     it('should return 403 Forbidden if accessed by NASABAH', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/setor-sampah/admin/list')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .expect(403);
 
@@ -308,7 +259,6 @@ describe('SetorSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/setor-sampah/${mockSetor.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .expect(200);
 
@@ -317,12 +267,11 @@ describe('SetorSampahController (e2e)', () => {
       expect(res.body.data.kodeSetor).toBe(mockSetor.kodeSetor);
     });
 
-    it('should allow ADMIN to view any transaction in tenant (200)', async () => {
+    it('should allow ADMIN to view any transaction (200)', async () => {
       prismaMock.setorSampah.findFirst.mockResolvedValue(mockSetor);
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/setor-sampah/${mockSetor.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -335,7 +284,6 @@ describe('SetorSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/setor-sampah/${mockSetor.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${otherNasabahToken}`)
         .expect(404);
 
@@ -356,7 +304,6 @@ describe('SetorSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .put(`/api/v1/setor-sampah/admin/verify/${mockSetor.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           status: 'selesai',
@@ -384,7 +331,6 @@ describe('SetorSampahController (e2e)', () => {
     it('should return 403 Forbidden if called by NASABAH', async () => {
       const res = await request(app.getHttpServer())
         .put(`/api/v1/setor-sampah/admin/verify/${mockSetor.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .send({
           status: 'diverifikasi',
@@ -397,7 +343,6 @@ describe('SetorSampahController (e2e)', () => {
     it('should return 400 Bad Request if status is not valid StatusSetor enum', async () => {
       const res = await request(app.getHttpServer())
         .put(`/api/v1/setor-sampah/admin/verify/${mockSetor.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           status: 'invalid_status',
@@ -408,12 +353,11 @@ describe('SetorSampahController (e2e)', () => {
       expect(res.body.message).toBe('Validasi data gagal');
     });
 
-    it('should return 404 if setor not found or belongs to different tenant', async () => {
+    it('should return 404 if setor not found', async () => {
       prismaMock.setorSampah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .put('/api/v1/setor-sampah/admin/verify/unknown-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           status: 'selesai',

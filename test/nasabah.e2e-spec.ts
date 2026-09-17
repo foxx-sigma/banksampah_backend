@@ -13,26 +13,11 @@ describe('NasabahController (e2e)', () => {
   let storageMock: any;
   let jwtService: JwtService;
 
-  const mockAppMaker = {
-    id: 'tenant-admin-1',
-    appKey: 'app-key-admin-12345',
-    email: 'adminmaker@example.com',
-    namaSiswa: 'Siswa Admin',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
-  const otherAppMaker = {
-    id: 'tenant-other-9',
-    appKey: 'app-key-other-99999',
-  };
-
   let adminToken: string;
   let nasabahToken: string;
 
   const mockNasabah = {
     id: 'nasabah-id-1',
-    appMakerId: mockAppMaker.id,
     userId: 'user-nasabah-1',
     namaNasabah: 'Budi Santoso',
     alamat: 'Jl. Melati No. 1',
@@ -53,24 +38,13 @@ describe('NasabahController (e2e)', () => {
 
   beforeEach(async () => {
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) {
-            return Promise.resolve(mockAppMaker);
-          }
-          if (args.where.appKey === otherAppMaker.appKey) {
-            return Promise.resolve(otherAppMaker);
-          }
-          return Promise.resolve(null);
-        }),
-      },
       user: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where?.id === 'admin-user-1') {
-            return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+            return Promise.resolve({ id: 'admin-user-1', role: 'ADMIN' });
           }
           if (args.where?.id === 'nasabah-user-1') {
-            return Promise.resolve({ id: 'nasabah-user-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+            return Promise.resolve({ id: 'nasabah-user-1', role: 'NASABAH' });
           }
           return Promise.resolve(null);
         }),
@@ -118,7 +92,6 @@ describe('NasabahController (e2e)', () => {
       userId: 'admin-user-1',
       username: 'admin1',
       role: 'ADMIN',
-      appMakerId: mockAppMaker.id,
     });
 
     nasabahToken = await jwtService.signAsync({
@@ -126,7 +99,6 @@ describe('NasabahController (e2e)', () => {
       userId: 'nasabah-user-1',
       username: 'nasabah1',
       role: 'NASABAH',
-      appMakerId: mockAppMaker.id,
     });
   });
 
@@ -135,20 +107,9 @@ describe('NasabahController (e2e)', () => {
   });
 
   describe('Guard Protection & Role Authorization', () => {
-    it('should return 401 if x-app-key header is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/admin/nasabah')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
     it('should return 401 if Authorization header is missing', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/admin/nasabah')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(401);
 
       expect(res.body.statusCode).toBe(401);
@@ -158,7 +119,6 @@ describe('NasabahController (e2e)', () => {
     it('should return 403 Forbidden if user role is not ADMIN (e.g. NASABAH)', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/admin/nasabah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .expect(403);
 
@@ -168,12 +128,11 @@ describe('NasabahController (e2e)', () => {
   });
 
   describe('GET /api/v1/admin/nasabah', () => {
-    it('should return list of nasabah in caller tenant (200)', async () => {
+    it('should return list of nasabah (200)', async () => {
       prismaMock.nasabah.findMany.mockResolvedValue([mockNasabah]);
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/admin/nasabah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -191,7 +150,7 @@ describe('NasabahController (e2e)', () => {
     it('should create new nasabah with photo upload (201)', async () => {
       prismaMock.user.findUnique.mockImplementation((args: any) => {
         if (args.where?.id === 'admin-user-1') {
-          return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          return Promise.resolve({ id: 'admin-user-1', role: 'ADMIN' });
         }
         return Promise.resolve(null);
       });
@@ -199,11 +158,9 @@ describe('NasabahController (e2e)', () => {
         id: 'new-user-id',
         username: 'sitirahma',
         role: 'NASABAH',
-        appMakerId: mockAppMaker.id,
       });
       prismaMock.nasabah.create.mockResolvedValue({
         id: 'new-nasabah-id',
-        appMakerId: mockAppMaker.id,
         userId: 'new-user-id',
         namaNasabah: 'Siti Rahma',
         alamat: 'Jl. Anggrek 12',
@@ -223,7 +180,6 @@ describe('NasabahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/admin/nasabah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .field('username', 'sitirahma')
         .field('password', 'password123')
@@ -244,12 +200,12 @@ describe('NasabahController (e2e)', () => {
       expect(storageMock.uploadFile).toHaveBeenCalled();
     });
 
-    it('should return 409 Conflict if username already registered in tenant', async () => {
+    it('should return 409 Conflict if username already registered', async () => {
       prismaMock.user.findUnique.mockImplementation((args: any) => {
         if (args.where?.id === 'admin-user-1') {
-          return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+          return Promise.resolve({ id: 'admin-user-1', role: 'ADMIN' });
         }
-        if (args.where?.appMakerId_username) {
+        if (args.where?.username) {
           return Promise.resolve({ id: 'existing-user' });
         }
         return Promise.resolve(null);
@@ -257,7 +213,6 @@ describe('NasabahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/admin/nasabah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           username: 'budisantoso',
@@ -275,12 +230,11 @@ describe('NasabahController (e2e)', () => {
   });
 
   describe('GET /api/v1/admin/nasabah/:id', () => {
-    it('should return detail of nasabah when caller has matching tenant (200)', async () => {
+    it('should return detail of nasabah (200)', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(mockNasabah);
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/admin/nasabah/${mockNasabah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -291,12 +245,11 @@ describe('NasabahController (e2e)', () => {
       expect(res.body.data.namaNasabah).toBe('Budi Santoso');
     });
 
-    it('should return 404 if nasabah not found or belongs to different tenant', async () => {
+    it('should return 404 if nasabah not found', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/admin/nasabah/unknown-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
 
@@ -317,7 +270,6 @@ describe('NasabahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .put(`/api/v1/admin/nasabah/${mockNasabah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           namaLengkap: 'Budi Updated',
@@ -332,12 +284,11 @@ describe('NasabahController (e2e)', () => {
       expect(res.body.data.namaNasabah).toBe('Budi Updated');
     });
 
-    it('should return 404 if nasabah to update is not in caller tenant', async () => {
+    it('should return 404 if nasabah to update is not found', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .put('/api/v1/admin/nasabah/foreign-tenant-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           namaLengkap: 'Hacked Name',
@@ -351,14 +302,13 @@ describe('NasabahController (e2e)', () => {
   });
 
   describe('DELETE /api/v1/admin/nasabah/:id', () => {
-    it('should delete nasabah in caller tenant (200)', async () => {
+    it('should delete nasabah (200)', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(mockNasabah);
       prismaMock.nasabah.delete.mockResolvedValue(mockNasabah);
       prismaMock.user.delete.mockResolvedValue(mockNasabah.user);
 
       const res = await request(app.getHttpServer())
         .delete(`/api/v1/admin/nasabah/${mockNasabah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -368,12 +318,11 @@ describe('NasabahController (e2e)', () => {
       expect(res.body.data).toEqual({ id: mockNasabah.id, deleted: true });
     });
 
-    it('should return 404 if nasabah to delete is not in caller tenant', async () => {
+    it('should return 404 if nasabah to delete is not found', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .delete('/api/v1/admin/nasabah/foreign-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
 

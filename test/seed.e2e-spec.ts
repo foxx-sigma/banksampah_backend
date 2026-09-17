@@ -9,15 +9,6 @@ describe('SeedController (e2e)', () => {
   let app: INestApplication;
   let prismaMock: any;
 
-  const mockAppMaker = {
-    id: 'tenant-seed-1',
-    appKey: 'app-key-seed-12345',
-    email: 'adminseed@example.com',
-    namaSiswa: 'Siswa Seed',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
   beforeEach(async () => {
     const txMock = {
       detailSetor: {
@@ -71,12 +62,6 @@ describe('SeedController (e2e)', () => {
     };
 
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) return Promise.resolve(mockAppMaker);
-          return Promise.resolve(null);
-        }),
-      },
       $transaction: vi.fn().mockImplementation((cb: any) => cb(txMock)),
     };
 
@@ -103,29 +88,9 @@ describe('SeedController (e2e)', () => {
   });
 
   describe('POST /api/v1/seed', () => {
-    it('should return 401 if x-app-key header is missing', async () => {
+    it('should successfully seed data and return credentials (201)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/seed')
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
-    it('should return 401 if x-app-key is invalid', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/seed')
-        .set('x-app-key', 'invalid-key')
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key tidak valid');
-    });
-
-    it('should successfully seed data with valid x-app-key and return credentials (201)', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/seed')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(201);
 
       expect(res.body.statusCode).toBe(201);

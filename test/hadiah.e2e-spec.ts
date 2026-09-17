@@ -13,26 +13,11 @@ describe('HadiahController (e2e)', () => {
   let storageMock: any;
   let jwtService: JwtService;
 
-  const mockAppMaker = {
-    id: 'tenant-maker-1',
-    appKey: 'app-key-maker-12345',
-    email: 'adminmaker@example.com',
-    namaSiswa: 'Siswa Admin',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
-  const otherAppMaker = {
-    id: 'tenant-maker-2',
-    appKey: 'app-key-maker-99999',
-  };
-
   let adminToken: string;
   let nasabahToken: string;
 
   const mockHadiah = {
     id: 'hadiah-uuid-1',
-    appMakerId: mockAppMaker.id,
     namaHadiah: 'Tumbler Stainless Steel',
     deskripsi: 'Tumbler ramah lingkungan 500ml',
     poinDibutuhkan: 250,
@@ -44,17 +29,6 @@ describe('HadiahController (e2e)', () => {
 
   beforeEach(async () => {
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) {
-            return Promise.resolve(mockAppMaker);
-          }
-          if (args.where.appKey === otherAppMaker.appKey) {
-            return Promise.resolve(otherAppMaker);
-          }
-          return Promise.resolve(null);
-        }),
-      },
       hadiah: {
         findMany: vi.fn(),
         findFirst: vi.fn(),
@@ -65,10 +39,10 @@ describe('HadiahController (e2e)', () => {
       user: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where?.id === 'admin-user-1') {
-            return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+            return Promise.resolve({ id: 'admin-user-1', role: 'ADMIN' });
           }
           if (args.where?.id === 'nasabah-user-1') {
-            return Promise.resolve({ id: 'nasabah-user-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+            return Promise.resolve({ id: 'nasabah-user-1', role: 'NASABAH' });
           }
           return Promise.resolve(null);
         }),
@@ -106,7 +80,6 @@ describe('HadiahController (e2e)', () => {
       userId: 'admin-user-1',
       username: 'admin1',
       role: 'ADMIN',
-      appMakerId: mockAppMaker.id,
     });
 
     nasabahToken = await jwtService.signAsync({
@@ -114,7 +87,6 @@ describe('HadiahController (e2e)', () => {
       userId: 'nasabah-user-1',
       username: 'nasabah1',
       role: 'NASABAH',
-      appMakerId: mockAppMaker.id,
     });
   });
 
@@ -123,21 +95,11 @@ describe('HadiahController (e2e)', () => {
   });
 
   describe('Guard Protection & Role Authorization', () => {
-    it('should return 401 on GET /api/v1/hadiah if x-app-key header is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/hadiah')
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
-    it('should allow GET /api/v1/hadiah with x-app-key without JWT token (public access) (200)', async () => {
+    it('should allow GET /api/v1/hadiah without JWT token (public access) (200)', async () => {
       prismaMock.hadiah.findMany.mockResolvedValue([mockHadiah]);
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/hadiah')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -150,7 +112,6 @@ describe('HadiahController (e2e)', () => {
     it('should return 401 on POST /api/v1/hadiah if Authorization header is missing', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/hadiah')
-        .set('x-app-key', mockAppMaker.appKey)
         .field('namaHadiah', 'Tumbler')
         .field('poinDibutuhkan', '100')
         .field('stok', '10')
@@ -163,7 +124,6 @@ describe('HadiahController (e2e)', () => {
     it('should return 403 Forbidden on POST /api/v1/hadiah if role is NASABAH', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/hadiah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .field('namaHadiah', 'Tumbler')
         .field('poinDibutuhkan', '100')
@@ -177,7 +137,6 @@ describe('HadiahController (e2e)', () => {
     it('should return 403 Forbidden on PUT /api/v1/hadiah/:id if role is NASABAH', async () => {
       const res = await request(app.getHttpServer())
         .put(`/api/v1/hadiah/${mockHadiah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .field('namaHadiah', 'Tumbler Updated')
         .expect(403);
@@ -189,7 +148,6 @@ describe('HadiahController (e2e)', () => {
     it('should return 403 Forbidden on DELETE /api/v1/hadiah/:id if role is NASABAH', async () => {
       const res = await request(app.getHttpServer())
         .delete(`/api/v1/hadiah/${mockHadiah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .expect(403);
 
@@ -202,7 +160,6 @@ describe('HadiahController (e2e)', () => {
     it('should return 400 if required fields are missing on POST /api/v1/hadiah', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/hadiah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .field('deskripsi', 'Hanya deskripsi')
         .expect(400);
@@ -221,7 +178,6 @@ describe('HadiahController (e2e)', () => {
     it('should return 400 if poinDibutuhkan is negative', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/hadiah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .field('namaHadiah', 'Piring Cantik')
         .field('poinDibutuhkan', '-10')
@@ -250,7 +206,6 @@ describe('HadiahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/hadiah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .field('namaHadiah', 'Payung Lipat Eco')
         .field('deskripsi', 'Payung lipat praktis')
@@ -265,7 +220,6 @@ describe('HadiahController (e2e)', () => {
       expect(res.body.data.namaHadiah).toBe('Payung Lipat Eco');
       expect(res.body.data.poinDibutuhkan).toBe(150);
       expect(res.body.data.stok).toBe(25);
-      expect(res.body.data.appMakerId).toBe(mockAppMaker.id);
       expect(storageMock.uploadFile).toHaveBeenCalled();
     });
   });
@@ -276,7 +230,6 @@ describe('HadiahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/hadiah/${mockHadiah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -286,12 +239,11 @@ describe('HadiahController (e2e)', () => {
       expect(res.body.data.namaHadiah).toBe(mockHadiah.namaHadiah);
     });
 
-    it('should return 404 if hadiah not found or belongs to another tenant', async () => {
+    it('should return 404 if hadiah not found', async () => {
       prismaMock.hadiah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/hadiah/non-existent-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(404);
 
       expect(res.body.statusCode).toBe(404);
@@ -310,7 +262,6 @@ describe('HadiahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .put(`/api/v1/hadiah/${mockHadiah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .field('namaHadiah', 'Tumbler Updated')
         .field('poinDibutuhkan', '300')
@@ -331,7 +282,6 @@ describe('HadiahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .delete(`/api/v1/hadiah/${mockHadiah.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 

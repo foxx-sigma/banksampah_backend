@@ -98,8 +98,6 @@ async function bootstrap() {
     },
   });
   app.use('/api/v1/auth/login', authLimiter);
-  app.use('/api/v1/maker/login', authLimiter);
-  app.use('/api/v1/maker/check-key', authLimiter);
 
   const corsOrigin = process.env.CORS_ORIGIN;
   const isWildcard = !corsOrigin || corsOrigin.trim() === '*';
@@ -110,7 +108,7 @@ async function bootstrap() {
   app.enableCors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-app-key', 'X-App-Key'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: !isWildcard,
   });
 
@@ -126,18 +124,9 @@ async function bootstrap() {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Bank Sampah Digital API')
       .setDescription(
-        'Dokumentasi OpenAPI / Swagger untuk backend Bank Sampah Digital. Menyediakan endpoints multi-tenant (App Maker), registrasi & autentikasi (Admin & Nasabah), manajemen data nasabah, katalog jenis sampah, pengajuan & verifikasi setoran sampah, katalog hadiah reward, penukaran poin, rekapitulasi bulanan, dasbor, dan seeding data.',
+        'Dokumentasi OpenAPI / Swagger untuk backend Bank Sampah Digital. Menyediakan endpoints registrasi & autentikasi (Admin & Nasabah), manajemen data nasabah, katalog jenis sampah, pengajuan & verifikasi setoran sampah, katalog hadiah reward, penukaran poin, rekapitulasi bulanan, dasbor, dan seeding data.',
       )
       .setVersion('0.0.1')
-      .addApiKey(
-        {
-          type: 'apiKey',
-          name: 'x-app-key',
-          in: 'header',
-          description: 'Tenant App Key yang dikirimkan pada header x-app-key',
-        },
-        'x-app-key',
-      )
       .addBearerAuth(
         {
           type: 'http',
@@ -147,7 +136,6 @@ async function bootstrap() {
         },
         'JWT-auth',
       )
-      .addTag('App Maker', 'Manajemen tenant aplikasi dan profil App Maker')
       .addTag('Auth', 'Registrasi dan otentikasi login nasabah dan admin bank sampah')
       .addTag('Admin Nasabah', 'Manajemen data nasabah oleh admin bank sampah')
       .addTag('Kategori Sampah', 'Katalog kategori jenis sampah, harga, dan poin per kg')

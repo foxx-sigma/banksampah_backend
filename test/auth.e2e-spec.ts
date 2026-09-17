@@ -10,18 +10,8 @@ describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let prismaMock: any;
 
-  const mockAppMaker = {
-    id: 'tenant-uuid-1',
-    appKey: 'test-app-key-12345',
-    email: 'maker@example.com',
-    namaSiswa: 'Siswa Satu',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
   const mockNasabahUser = {
     id: 'user-nasabah-1',
-    appMakerId: mockAppMaker.id,
     username: 'nasabah1',
     password: '',
     role: 'NASABAH',
@@ -29,7 +19,6 @@ describe('AuthController (e2e)', () => {
     updatedAt: new Date(),
     nasabah: {
       id: 'nasabah-profile-1',
-      appMakerId: mockAppMaker.id,
       userId: 'user-nasabah-1',
       namaNasabah: 'Budi Santoso',
       alamat: 'Jl. Melati',
@@ -46,14 +35,6 @@ describe('AuthController (e2e)', () => {
     mockNasabahUser.password = await bcrypt.hash('secret123', 10);
 
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) {
-            return Promise.resolve(mockAppMaker);
-          }
-          return Promise.resolve(null);
-        }),
-      },
       user: {
         findUnique: vi.fn(),
         create: vi.fn(),
@@ -91,26 +72,9 @@ describe('AuthController (e2e)', () => {
   });
 
   describe('POST /api/v1/auth/nasabah/register', () => {
-    it('should return 401 if x-app-key is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/nasabah/register')
-        .send({
-          username: 'budi',
-          password: 'password123',
-          namaNasabah: 'Budi',
-          alamat: 'Jl. Merdeka',
-          telp: '081234567',
-        })
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
     it('should return 400 if validation fails (e.g. password < 6 chars)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'budi',
           password: '123',
@@ -131,7 +95,6 @@ describe('AuthController (e2e)', () => {
         id: 'new-user-1',
         username: 'budisantoso',
         role: 'NASABAH',
-        appMakerId: mockAppMaker.id,
       });
       prismaMock.nasabah.create.mockResolvedValue({
         id: 'new-nasabah-1',
@@ -146,7 +109,6 @@ describe('AuthController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'budisantoso',
           password: 'password123',
@@ -171,7 +133,6 @@ describe('AuthController (e2e)', () => {
         id: 'new-user-2',
         username: 'sitirahma',
         role: 'NASABAH',
-        appMakerId: mockAppMaker.id,
       });
       prismaMock.nasabah.create.mockImplementation((args: any) =>
         Promise.resolve({
@@ -194,7 +155,6 @@ describe('AuthController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
-        .set('x-app-key', mockAppMaker.appKey)
         .field('username', 'sitirahma')
         .field('password', 'password123')
         .field('namaNasabah', 'Siti Rahma')
@@ -214,7 +174,6 @@ describe('AuthController (e2e)', () => {
     it('should reject file upload if extension is not allowed (e.g. .html)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
-        .set('x-app-key', mockAppMaker.appKey)
         .field('username', 'hacker')
         .field('password', 'password123')
         .field('namaNasabah', 'Hacker')
@@ -235,7 +194,6 @@ describe('AuthController (e2e)', () => {
     it('should reject file with valid extension but invalid binary content (magic bytes)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
-        .set('x-app-key', mockAppMaker.appKey)
         .field('username', 'fakephoto')
         .field('password', 'password123')
         .field('namaNasabah', 'Fake Photo')
@@ -258,7 +216,6 @@ describe('AuthController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/nasabah/register')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'nasabah1',
           password: 'password123',
@@ -281,7 +238,6 @@ describe('AuthController (e2e)', () => {
         id: 'admin-user-1',
         username: 'adminutama',
         role: 'ADMIN',
-        appMakerId: mockAppMaker.id,
       });
       prismaMock.adminBank.create.mockResolvedValue({
         id: 'admin-unit-1',
@@ -294,7 +250,6 @@ describe('AuthController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/admin/register')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'adminutama',
           password: 'adminsecret123',
@@ -318,7 +273,6 @@ describe('AuthController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'nasabah1',
           password: 'secret123',
@@ -340,7 +294,6 @@ describe('AuthController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'nasabah1',
           password: 'wrongPassword',
@@ -357,7 +310,6 @@ describe('AuthController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'unknownuser',
           password: 'password123',
@@ -373,20 +325,18 @@ describe('AuthController (e2e)', () => {
     it('should return 401 if Authorization header is missing', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/auth/me')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(401);
 
       expect(res.body.statusCode).toBe(401);
       expect(res.body.message).toBe('Token otentikasi diperlukan');
     });
 
-    it('should return active user profile when valid token and x-app-key are provided (200)', async () => {
+    it('should return active user profile when valid token is provided (200)', async () => {
       // First login to get a real token signed with the test secret
       prismaMock.user.findUnique.mockResolvedValue(mockNasabahUser);
 
       const loginRes = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           username: 'nasabah1',
           password: 'secret123',
@@ -398,7 +348,6 @@ describe('AuthController (e2e)', () => {
       // Call GET /api/v1/auth/me
       const meRes = await request(app.getHttpServer())
         .get('/api/v1/auth/me')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 

@@ -14,26 +14,11 @@ describe('KategoriSampahController (e2e)', () => {
   let storageMock: any;
   let jwtService: JwtService;
 
-  const mockAppMaker = {
-    id: 'tenant-maker-1',
-    appKey: 'app-key-maker-12345',
-    email: 'adminmaker@example.com',
-    namaSiswa: 'Siswa Admin',
-    kelas: 'XII RPL',
-    namaApp: 'Bank Sampah Digital',
-  };
-
-  const otherAppMaker = {
-    id: 'tenant-maker-2',
-    appKey: 'app-key-maker-99999',
-  };
-
   let adminToken: string;
   let nasabahToken: string;
 
   const mockKategori = {
     id: 'kategori-uuid-1',
-    appMakerId: mockAppMaker.id,
     namaKategori: 'Botol Plastik PET',
     hargaPerKg: 3000,
     poinPerKg: 10,
@@ -45,17 +30,6 @@ describe('KategoriSampahController (e2e)', () => {
 
   beforeEach(async () => {
     prismaMock = {
-      appMaker: {
-        findUnique: vi.fn().mockImplementation((args: any) => {
-          if (args.where.appKey === mockAppMaker.appKey) {
-            return Promise.resolve(mockAppMaker);
-          }
-          if (args.where.appKey === otherAppMaker.appKey) {
-            return Promise.resolve(otherAppMaker);
-          }
-          return Promise.resolve(null);
-        }),
-      },
       kategoriSampah: {
         findMany: vi.fn(),
         findFirst: vi.fn(),
@@ -66,10 +40,10 @@ describe('KategoriSampahController (e2e)', () => {
       user: {
         findUnique: vi.fn().mockImplementation((args: any) => {
           if (args.where?.id === 'admin-user-1') {
-            return Promise.resolve({ id: 'admin-user-1', appMakerId: mockAppMaker.id, role: 'ADMIN' });
+            return Promise.resolve({ id: 'admin-user-1', role: 'ADMIN' });
           }
           if (args.where?.id === 'nasabah-user-1') {
-            return Promise.resolve({ id: 'nasabah-user-1', appMakerId: mockAppMaker.id, role: 'NASABAH' });
+            return Promise.resolve({ id: 'nasabah-user-1', role: 'NASABAH' });
           }
           return Promise.resolve(null);
         }),
@@ -107,7 +81,6 @@ describe('KategoriSampahController (e2e)', () => {
       userId: 'admin-user-1',
       username: 'admin1',
       role: 'ADMIN',
-      appMakerId: mockAppMaker.id,
     });
 
     nasabahToken = await jwtService.signAsync({
@@ -115,7 +88,6 @@ describe('KategoriSampahController (e2e)', () => {
       userId: 'nasabah-user-1',
       username: 'nasabah1',
       role: 'NASABAH',
-      appMakerId: mockAppMaker.id,
     });
   });
 
@@ -124,21 +96,11 @@ describe('KategoriSampahController (e2e)', () => {
   });
 
   describe('Guard Protection & Role Authorization', () => {
-    it('should return 401 on GET /api/v1/kategori-sampah if x-app-key header is missing', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/kategori-sampah')
-        .expect(401);
-
-      expect(res.body.statusCode).toBe(401);
-      expect(res.body.message).toBe('Header x-app-key diperlukan');
-    });
-
-    it('should allow GET /api/v1/kategori-sampah with x-app-key without JWT token (public/nasabah access) (200)', async () => {
+    it('should allow GET /api/v1/kategori-sampah without JWT token (public/nasabah access) (200)', async () => {
       prismaMock.kategoriSampah.findMany.mockResolvedValue([mockKategori]);
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/kategori-sampah')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -151,7 +113,6 @@ describe('KategoriSampahController (e2e)', () => {
     it('should return 401 on POST /api/v1/kategori-sampah if Authorization header is missing', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/kategori-sampah')
-        .set('x-app-key', mockAppMaker.appKey)
         .send({
           namaKategori: 'Kardus',
           hargaPerKg: 1000,
@@ -167,7 +128,6 @@ describe('KategoriSampahController (e2e)', () => {
     it('should return 403 Forbidden on POST /api/v1/kategori-sampah if role is NASABAH', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/kategori-sampah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${nasabahToken}`)
         .send({
           namaKategori: 'Kardus',
@@ -186,7 +146,6 @@ describe('KategoriSampahController (e2e)', () => {
     it('should return 400 if jenis is not in enum (plastik, kertas, logam, kaca)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/kategori-sampah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           namaKategori: 'Meja Kayu',
@@ -211,7 +170,6 @@ describe('KategoriSampahController (e2e)', () => {
       prismaMock.kategoriSampah.create.mockImplementation((args: any) =>
         Promise.resolve({
           id: 'new-kategori-id',
-          appMakerId: args.data.appMakerId,
           namaKategori: args.data.namaKategori,
           hargaPerKg: args.data.hargaPerKg,
           poinPerKg: args.data.poinPerKg,
@@ -224,7 +182,6 @@ describe('KategoriSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/kategori-sampah')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .field('namaKategori', 'Kardus Box')
         .field('hargaPerKg', '1500')
@@ -251,12 +208,11 @@ describe('KategoriSampahController (e2e)', () => {
   });
 
   describe('GET /api/v1/kategori-sampah/:id', () => {
-    it('should return detail of kategori sampah with x-app-key (200)', async () => {
+    it('should return detail of kategori sampah (200)', async () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(mockKategori);
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/kategori-sampah/${mockKategori.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -266,12 +222,11 @@ describe('KategoriSampahController (e2e)', () => {
       expect(res.body.data.namaKategori).toBe('Botol Plastik PET');
     });
 
-    it('should return 404 if category not found or belongs to different tenant', async () => {
+    it('should return 404 if category not found', async () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/kategori-sampah/other-tenant-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .expect(404);
 
       expect(res.body.statusCode).toBe(404);
@@ -291,7 +246,6 @@ describe('KategoriSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .put(`/api/v1/kategori-sampah/${mockKategori.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           namaKategori: 'Botol PET Bening',
@@ -305,12 +259,11 @@ describe('KategoriSampahController (e2e)', () => {
       expect(res.body.data.namaKategori).toBe('Botol PET Bening');
     });
 
-    it('should return 404 if updating kategori belonging to another tenant', async () => {
+    it('should return 404 if updating kategori not found', async () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .put('/api/v1/kategori-sampah/foreign-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           namaKategori: 'Hacked',
@@ -330,7 +283,6 @@ describe('KategoriSampahController (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .delete(`/api/v1/kategori-sampah/${mockKategori.id}`)
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -340,12 +292,11 @@ describe('KategoriSampahController (e2e)', () => {
       expect(res.body.data).toEqual({ id: mockKategori.id, deleted: true });
     });
 
-    it('should return 404 if deleting kategori belonging to another tenant', async () => {
+    it('should return 404 if deleting kategori not found', async () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .delete('/api/v1/kategori-sampah/foreign-id')
-        .set('x-app-key', mockAppMaker.appKey)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
 
