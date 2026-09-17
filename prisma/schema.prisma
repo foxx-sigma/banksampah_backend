@@ -69,6 +69,7 @@ model KategoriSampah {
 model SetorSampah {
   id                String        @id @default(uuid())
   nasabahId         String
+  foto              String?
   tanggal           DateTime      @default(now())
   totalBeratKg      Float         @default(0)
   totalBeratKgReal  Float?

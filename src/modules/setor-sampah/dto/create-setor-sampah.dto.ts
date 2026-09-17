@@ -28,6 +28,14 @@ export class CreateSetorSampahDto {
   @IsString({ message: 'catatan harus berupa string' })
   catatan?: string;
 
+  @ApiPropertyOptional({
+    description: 'Foto bukti sampah yang disetorkan (JPG, PNG, WEBP maks 5MB)',
+    type: 'string',
+    format: 'binary',
+  })
+  @IsOptional()
+  foto?: any;
+
   @ApiProperty({
     description: 'Daftar item sampah yang disetorkan (minimal 1)',
     type: [ItemSetorDto],

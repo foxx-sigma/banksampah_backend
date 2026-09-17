@@ -59,6 +59,7 @@ const BUCKET_ENV_MAP: Record<string, string> = {
   nasabah: 'SUPABASE_NASABAH_BUCKET',
   'kategori-sampah': 'SUPABASE_SAMPAH_BUCKET',
   hadiah: 'SUPABASE_HADIAH_BUCKET',
+  'setor-sampah': 'SUPABASE_SETOR_BUCKET',
 };
 
 @Injectable()

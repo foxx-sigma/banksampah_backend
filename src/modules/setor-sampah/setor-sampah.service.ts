@@ -18,6 +18,7 @@ export class SetorSampahService {
   async createPengajuan(
     userId: string,
     dto: CreateSetorSampahDto,
+    fotoUrl?: string,
   ) {
     const nasabah = await this.prisma.nasabah.findUnique({
       where: { userId },
@@ -70,6 +71,7 @@ export class SetorSampahService {
         estimasiTotalPoin,
         status: 'menunggu_konfirmasi',
         catatan: dto.catatan?.trim() || null,
+        foto: fotoUrl || null,
         detailSetor: {
           create: detailCreates,
         },
