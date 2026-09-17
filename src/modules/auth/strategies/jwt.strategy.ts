@@ -5,8 +5,7 @@ export interface JwtAuthPayload {
   sub: string;
   userId?: string;
   username: string;
-  role: 'NASABAH' | 'ADMIN' | 'MAKER';
-  appMakerId: string;
+  role: 'NASABAH' | 'ADMIN';
 }
 
 @Injectable()
@@ -30,12 +29,6 @@ export class JwtStrategy {
 
     if (!user) {
       throw new UnauthorizedException('Pengguna tidak ditemukan dalam sistem');
-    }
-
-    if (payload.appMakerId && user.appMakerId !== payload.appMakerId) {
-      throw new UnauthorizedException(
-        'Sesi otentikasi tidak sesuai dengan App Key yang aktif',
-      );
     }
 
     return user;

@@ -10,13 +10,11 @@ describe('NasabahService', () => {
   let prismaMock: any;
   let storageMock: any;
 
-  const mockAppMakerId = 'tenant-123';
   const mockNasabahId = 'nasabah-456';
   const mockUserId = 'user-789';
 
   const mockNasabah = {
     id: mockNasabahId,
-    appMakerId: mockAppMakerId,
     userId: mockUserId,
     namaNasabah: 'Budi Santoso',
     alamat: 'Jl. Merdeka No. 10',
@@ -45,11 +43,8 @@ describe('NasabahService', () => {
       nasabah: {
         findMany: vi.fn(),
         findFirst: vi.fn(),
-        create: vi.fn(),
         update: vi.fn(),
-        delete: vi.fn(),
       },
-      $transaction: vi.fn((callback) => callback(prismaMock)),
     };
 
     storageMock = {
@@ -69,13 +64,12 @@ describe('NasabahService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all nasabah belonging to appMakerId', async () => {
+    it('should return all nasabah', async () => {
       prismaMock.nasabah.findMany.mockResolvedValue([mockNasabah]);
 
-      const result = await service.findAll(mockAppMakerId);
+      const result = await service.findAll();
 
       expect(prismaMock.nasabah.findMany).toHaveBeenCalledWith({
-        where: { appMakerId: mockAppMakerId },
         include: {
           user: {
             select: {
@@ -104,45 +98,42 @@ describe('NasabahService', () => {
       tanggalLahir: '1995-05-20',
     };
 
-    it('should throw ConflictException if username already exists in tenant', async () => {
+    it('should throw ConflictException if username already exists', async () => {
       prismaMock.user.findUnique.mockResolvedValue({ id: 'existing-id' });
 
       await expect(
-        service.create(mockAppMakerId, createDto),
+        service.create(createDto),
       ).rejects.toThrow(ConflictException);
     });
 
-    it('should create user and nasabah within transaction', async () => {
+    it('should create user and nasabah via nested write', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue({
         id: mockUserId,
         username: 'budisantoso',
         role: 'NASABAH',
-        appMakerId: mockAppMakerId,
+        nasabah: mockNasabah,
       });
-      prismaMock.nasabah.create.mockResolvedValue(mockNasabah);
 
       const result = await service.create(
-        mockAppMakerId,
         createDto,
         'https://supabase.co/foto.jpg',
       );
 
       expect(prismaMock.user.create).toHaveBeenCalled();
-      expect(prismaMock.nasabah.create).toHaveBeenCalled();
       expect(result.id).toBe(mockNasabahId);
       expect(result.user.username).toBe('budisantoso');
     });
   });
 
   describe('findOne', () => {
-    it('should return nasabah if found within same tenant', async () => {
+    it('should return nasabah if found', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(mockNasabah);
 
-      const result = await service.findOne(mockAppMakerId, mockNasabahId);
+      const result = await service.findOne(mockNasabahId);
 
       expect(prismaMock.nasabah.findFirst).toHaveBeenCalledWith({
-        where: { id: mockNasabahId, appMakerId: mockAppMakerId },
+        where: { id: mockNasabahId },
         include: {
           user: {
             select: {
@@ -158,21 +149,21 @@ describe('NasabahService', () => {
       expect(result.id).toBe(mockNasabahId);
     });
 
-    it('should throw NotFoundException if nasabah not found or different tenant', async () => {
+    it('should throw NotFoundException if nasabah not found', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.findOne(mockAppMakerId, 'other-id'),
+        service.findOne('other-id'),
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    it('should throw NotFoundException if nasabah does not exist in tenant', async () => {
+    it('should throw NotFoundException if nasabah does not exist', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update(mockAppMakerId, 'other-id', { namaLengkap: 'Baru' }),
+        service.update('other-id', { namaLengkap: 'Baru' }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -185,7 +176,6 @@ describe('NasabahService', () => {
       });
 
       const result = await service.update(
-        mockAppMakerId,
         mockNasabahId,
         {
           namaLengkap: 'Budi Santoso Update',
@@ -203,24 +193,20 @@ describe('NasabahService', () => {
   });
 
   describe('remove', () => {
-    it('should throw NotFoundException if nasabah not found in tenant', async () => {
+    it('should throw NotFoundException if nasabah not found', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove(mockAppMakerId, 'unknown-id'),
+        service.remove('unknown-id'),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should delete nasabah and linked user in transaction, and remove photo', async () => {
+    it('should delete linked user triggering cascade delete for nasabah, and remove photo', async () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(mockNasabah);
-      prismaMock.nasabah.delete.mockResolvedValue(mockNasabah);
       prismaMock.user.delete.mockResolvedValue(mockNasabah.user);
 
-      const result = await service.remove(mockAppMakerId, mockNasabahId);
+      const result = await service.remove(mockNasabahId);
 
-      expect(prismaMock.nasabah.delete).toHaveBeenCalledWith({
-        where: { id: mockNasabahId },
-      });
       expect(prismaMock.user.delete).toHaveBeenCalledWith({
         where: { id: mockUserId },
       });

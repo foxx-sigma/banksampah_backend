@@ -10,17 +10,15 @@ export class HadiahService {
     private readonly storageService: StorageService,
   ) {}
 
-  async findAll(appMakerId: string) {
+  async findAll() {
     return this.prisma.hadiah.findMany({
-      where: { appMakerId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async create(appMakerId: string, dto: CreateHadiahDto, fotoUrl?: string) {
+  async create(dto: CreateHadiahDto, fotoUrl?: string) {
     return this.prisma.hadiah.create({
       data: {
-        appMakerId,
         namaHadiah: dto.namaHadiah.trim(),
         deskripsi: dto.deskripsi?.trim() || null,
         poinDibutuhkan: dto.poinDibutuhkan,
@@ -30,12 +28,9 @@ export class HadiahService {
     });
   }
 
-  async findOne(appMakerId: string, id: string) {
+  async findOne(id: string) {
     const hadiah = await this.prisma.hadiah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!hadiah) {
@@ -46,16 +41,12 @@ export class HadiahService {
   }
 
   async update(
-    appMakerId: string,
     id: string,
     dto: UpdateHadiahDto,
     fotoUrl?: string,
   ) {
     const existing = await this.prisma.hadiah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!existing) {
@@ -91,12 +82,9 @@ export class HadiahService {
     return updated;
   }
 
-  async remove(appMakerId: string, id: string) {
+  async remove(id: string) {
     const existing = await this.prisma.hadiah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!existing) {

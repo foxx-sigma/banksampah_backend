@@ -8,7 +8,6 @@ describe('DashboardService', () => {
   let service: DashboardService;
   let prismaMock: any;
 
-  const mockAppMakerId = 'tenant-uuid-1';
   const mockUserId = 'user-uuid-1';
   const mockNasabahId = 'nasabah-uuid-1';
 
@@ -50,7 +49,6 @@ describe('DashboardService', () => {
       prismaMock.nasabah.findUnique.mockResolvedValue({
         id: mockNasabahId,
         userId: mockUserId,
-        appMakerId: mockAppMakerId,
         saldoPoin: 500,
       });
 
@@ -88,31 +86,21 @@ describe('DashboardService', () => {
       prismaMock.setorSampah.findFirst.mockResolvedValue(mockSetorTerakhir);
       prismaMock.penukaranPoin.findFirst.mockResolvedValue(mockTukarTerakhir);
 
-      const result = await service.getSummary(mockAppMakerId, mockUserId);
+      const result = await service.getSummary(mockUserId);
 
       expect(result.saldoPoinSaatIni).toBe(500);
-      expect(result.totalSampahDisetorKg).toBe(8.5); // 5.5 + 3
-      expect(result.totalPoinDidapat).toBe(170); // 110 + 60
-      expect(result.totalPoinDitukar).toBe(150); // 50 + 100
+      expect(result.totalSampahDisetorKg).toBe(8.5);
+      expect(result.totalPoinDidapat).toBe(170);
+      expect(result.totalPoinDitukar).toBe(150);
       expect(result.transaksiTerakhirSetor).toEqual(mockSetorTerakhir);
       expect(result.transaksiTerakhirTukar).toEqual(mockTukarTerakhir);
     });
 
-    it('should throw NotFoundException if nasabah is not found or wrong tenant', async () => {
+    it('should throw NotFoundException if nasabah is not found', async () => {
       prismaMock.nasabah.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.getSummary(mockAppMakerId, mockUserId),
-      ).rejects.toThrow(NotFoundException);
-
-      prismaMock.nasabah.findUnique.mockResolvedValue({
-        id: mockNasabahId,
-        userId: mockUserId,
-        appMakerId: 'other-tenant',
-      });
-
-      await expect(
-        service.getSummary(mockAppMakerId, mockUserId),
+        service.getSummary(mockUserId),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -120,7 +108,6 @@ describe('DashboardService', () => {
       prismaMock.nasabah.findUnique.mockResolvedValue({
         id: mockNasabahId,
         userId: mockUserId,
-        appMakerId: mockAppMakerId,
         saldoPoin: 0,
       });
 
@@ -129,7 +116,7 @@ describe('DashboardService', () => {
       prismaMock.setorSampah.findFirst.mockResolvedValue(null);
       prismaMock.penukaranPoin.findFirst.mockResolvedValue(null);
 
-      const result = await service.getSummary(mockAppMakerId, mockUserId);
+      const result = await service.getSummary(mockUserId);
 
       expect(result.saldoPoinSaatIni).toBe(0);
       expect(result.totalSampahDisetorKg).toBe(0);
@@ -141,7 +128,7 @@ describe('DashboardService', () => {
   });
 
   describe('getStats', () => {
-    it('should return correct tenant statistics', async () => {
+    it('should return correct statistics', async () => {
       prismaMock.nasabah.count.mockResolvedValue(10);
       prismaMock.kategoriSampah.count.mockResolvedValue(4);
       prismaMock.setorSampah.count.mockResolvedValue(15);
@@ -162,24 +149,24 @@ describe('DashboardService', () => {
         },
       ]);
 
-      const result = await service.getStats(mockAppMakerId);
+      const result = await service.getStats();
 
       expect(result.totalNasabah).toBe(10);
       expect(result.totalKategoriSampah).toBe(4);
       expect(result.totalTransaksiSetor).toBe(15);
       expect(result.totalHadiah).toBe(5);
-      expect(result.totalBeratSampahKg).toBe(20); // 12.5 + 7.5
-      expect(result.totalPoinTersalurkan).toBe(400); // 250 + 150
+      expect(result.totalBeratSampahKg).toBe(20);
+      expect(result.totalPoinTersalurkan).toBe(400);
     });
 
-    it('should return 0s if tenant has no data', async () => {
+    it('should return 0s if no data', async () => {
       prismaMock.nasabah.count.mockResolvedValue(0);
       prismaMock.kategoriSampah.count.mockResolvedValue(0);
       prismaMock.setorSampah.count.mockResolvedValue(0);
       prismaMock.hadiah.count.mockResolvedValue(0);
       prismaMock.setorSampah.findMany.mockResolvedValue([]);
 
-      const result = await service.getStats(mockAppMakerId);
+      const result = await service.getStats();
 
       expect(result.totalNasabah).toBe(0);
       expect(result.totalKategoriSampah).toBe(0);

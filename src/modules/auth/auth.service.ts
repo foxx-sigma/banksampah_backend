@@ -21,19 +21,13 @@ export class AuthService {
   ) {}
 
   async registerNasabah(
-    appMakerId: string,
     dto: RegisterNasabahBankDto,
     fotoUrl?: string,
   ) {
     const username = dto.username.trim();
 
     const existingUser = await this.prisma.user.findUnique({
-      where: {
-        appMakerId_username: {
-          appMakerId,
-          username,
-        },
-      },
+      where: { username },
     });
 
     if (existingUser) {
@@ -45,53 +39,47 @@ export class AuthService {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(dto.password, saltRounds);
 
-    return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          appMakerId,
-          username,
-          password: hashedPassword,
-          role: 'NASABAH',
-        },
-      });
-
-      const nasabah = await tx.nasabah.create({
-        data: {
-          appMakerId,
-          userId: user.id,
-          namaNasabah: dto.namaNasabah.trim(),
-          alamat: dto.alamat.trim(),
-          telp: dto.telp.trim(),
-          foto: fotoUrl || null,
-          saldoPoin: 0,
-        },
-      });
-
-      return {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        appMakerId: user.appMakerId,
+    const user = await this.prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        role: 'NASABAH',
         nasabah: {
-          id: nasabah.id,
-          namaNasabah: nasabah.namaNasabah,
-          alamat: nasabah.alamat,
-          telp: nasabah.telp,
-          foto: nasabah.foto,
-          saldoPoin: nasabah.saldoPoin,
-          createdAt: nasabah.createdAt,
-          updatedAt: nasabah.updatedAt,
+          create: {
+            namaNasabah: dto.namaNasabah.trim(),
+            alamat: dto.alamat.trim(),
+            telp: dto.telp.trim(),
+            foto: fotoUrl || null,
+            saldoPoin: 0,
+          },
         },
-      };
+      },
+      include: {
+        nasabah: true,
+      },
     });
+
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      nasabah: {
+        id: user.nasabah!.id,
+        namaNasabah: user.nasabah!.namaNasabah,
+        alamat: user.nasabah!.alamat,
+        telp: user.nasabah!.telp,
+        foto: user.nasabah!.foto,
+        saldoPoin: user.nasabah!.saldoPoin,
+        createdAt: user.nasabah!.createdAt,
+        updatedAt: user.nasabah!.updatedAt,
+      },
+    };
   }
 
-  async registerAdmin(appMakerId: string, dto: RegisterAdminBankDto) {
+  async registerAdmin(dto: RegisterAdminBankDto) {
     const username = dto.username.trim();
 
-    const existingAdmin = await this.prisma.adminBank.findFirst({
-      where: { appMakerId },
-    });
+    const existingAdmin = await this.prisma.adminBank.findFirst({});
 
     if (existingAdmin) {
       throw new ConflictException(
@@ -100,12 +88,7 @@ export class AuthService {
     }
 
     const existingUser = await this.prisma.user.findUnique({
-      where: {
-        appMakerId_username: {
-          appMakerId,
-          username,
-        },
-      },
+      where: { username },
     });
 
     if (existingUser) {
@@ -117,53 +100,44 @@ export class AuthService {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(dto.password, saltRounds);
 
-    return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          appMakerId,
-          username,
-          password: hashedPassword,
-          role: 'ADMIN',
-        },
-      });
-
-      const adminBank = await tx.adminBank.create({
-        data: {
-          appMakerId,
-          userId: user.id,
-          namaUnit: dto.namaUnit.trim(),
-          namaPengelola: dto.namaPengelola.trim(),
-          telp: dto.telp.trim(),
-        },
-      });
-
-      return {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        appMakerId: user.appMakerId,
+    const user = await this.prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        role: 'ADMIN',
         adminBank: {
-          id: adminBank.id,
-          namaUnit: adminBank.namaUnit,
-          namaPengelola: adminBank.namaPengelola,
-          telp: adminBank.telp,
-          createdAt: adminBank.createdAt,
-          updatedAt: adminBank.updatedAt,
+          create: {
+            namaUnit: dto.namaUnit.trim(),
+            namaPengelola: dto.namaPengelola.trim(),
+            telp: dto.telp.trim(),
+          },
         },
-      };
+      },
+      include: {
+        adminBank: true,
+      },
     });
+
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      adminBank: {
+        id: user.adminBank!.id,
+        namaUnit: user.adminBank!.namaUnit,
+        namaPengelola: user.adminBank!.namaPengelola,
+        telp: user.adminBank!.telp,
+        createdAt: user.adminBank!.createdAt,
+        updatedAt: user.adminBank!.updatedAt,
+      },
+    };
   }
 
-  async login(appMakerId: string, dto: LoginUserDto) {
+  async login(dto: LoginUserDto) {
     const username = dto.username.trim();
 
     const user = await this.prisma.user.findUnique({
-      where: {
-        appMakerId_username: {
-          appMakerId,
-          username,
-        },
-      },
+      where: { username },
       include: {
         nasabah: true,
         adminBank: true,
@@ -188,7 +162,6 @@ export class AuthService {
       userId: user.id,
       username: user.username,
       role: user.role,
-      appMakerId: user.appMakerId,
     };
 
     const token = await this.jwtService.signAsync(payload);
@@ -200,7 +173,6 @@ export class AuthService {
         id: user.id,
         username: user.username,
         role: user.role,
-        appMakerId: user.appMakerId,
         nasabah: user.nasabah
           ? {
               id: user.nasabah.id,
@@ -223,7 +195,7 @@ export class AuthService {
     };
   }
 
-  async getMe(appMakerId: string, userId: string) {
+  async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -232,7 +204,7 @@ export class AuthService {
       },
     });
 
-    if (!user || user.appMakerId !== appMakerId) {
+    if (!user) {
       throw new NotFoundException('Pengguna tidak ditemukan');
     }
 

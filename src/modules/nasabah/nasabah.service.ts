@@ -15,9 +15,8 @@ export class NasabahService {
     private readonly storageService: StorageService,
   ) {}
 
-  async findAll(appMakerId: string) {
+  async findAll() {
     return this.prisma.nasabah.findMany({
-      where: { appMakerId },
       include: {
         user: {
           select: {
@@ -34,19 +33,13 @@ export class NasabahService {
   }
 
   async create(
-    appMakerId: string,
     dto: CreateNasabahDto,
     fotoUrl?: string,
   ) {
     const username = dto.username.trim();
 
     const existingUser = await this.prisma.user.findUnique({
-      where: {
-        appMakerId_username: {
-          appMakerId,
-          username,
-        },
-      },
+      where: { username },
     });
 
     if (existingUser) {
@@ -69,50 +62,45 @@ export class NasabahService {
     const nama = (dto.namaNasabah || dto.namaLengkap || '').trim();
     const telp = (dto.telp || dto.noTelepon || '').trim();
 
-    return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          appMakerId,
-          username,
-          password: hashedPassword,
-          role: 'NASABAH',
+    const user = await this.prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        role: 'NASABAH',
+        nasabah: {
+          create: {
+            namaNasabah: nama,
+            alamat: dto.alamat.trim(),
+            telp,
+            tanggalLahir,
+            foto: fotoUrl || null,
+            saldoPoin: 0,
+          },
         },
-      });
-
-      const nasabah = await tx.nasabah.create({
-        data: {
-          appMakerId,
-          userId: user.id,
-          namaNasabah: nama,
-          alamat: dto.alamat.trim(),
-          telp,
-          tanggalLahir,
-          foto: fotoUrl || null,
-          saldoPoin: 0,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              role: true,
-              createdAt: true,
-              updatedAt: true,
+      },
+      include: {
+        nasabah: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true,
+              },
             },
           },
         },
-      });
-
-      return nasabah;
+      },
     });
+
+    return user.nasabah!;
   }
 
-  async findOne(appMakerId: string, id: string) {
+  async findOne(id: string) {
     const nasabah = await this.prisma.nasabah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
       include: {
         user: {
           select: {
@@ -134,16 +122,12 @@ export class NasabahService {
   }
 
   async update(
-    appMakerId: string,
     id: string,
     dto: UpdateNasabahDto,
     fotoUrl?: string,
   ) {
     const existing = await this.prisma.nasabah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!existing) {
@@ -193,25 +177,17 @@ export class NasabahService {
     return updated;
   }
 
-  async remove(appMakerId: string, id: string) {
+  async remove(id: string) {
     const existing = await this.prisma.nasabah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!existing) {
       throw new NotFoundException('Data nasabah tidak ditemukan');
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.nasabah.delete({
-        where: { id },
-      });
-      await tx.user.delete({
-        where: { id: existing.userId },
-      });
+    await this.prisma.user.delete({
+      where: { id: existing.userId },
     });
 
     if (existing.foto) {

@@ -8,7 +8,6 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -18,7 +17,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiHeader,
   ApiBearerAuth,
   ApiConsumes,
 } from '@nestjs/swagger';
@@ -30,12 +28,8 @@ import { randomUUID } from 'node:crypto';
 import { NasabahService } from './nasabah.service.js';
 import { CreateNasabahDto, UpdateNasabahDto } from './dto/index.js';
 import {
-  AppKeyGuard,
-  JwtAuthGuard,
-  RolesGuard,
   Roles,
   ResponseMessage,
-  CurrentAppMaker,
   StorageService,
 } from '../../common/index.js';
 
@@ -76,7 +70,7 @@ const multerNasabahStorage = diskStorage({
 const multerNasabahOptions = {
   storage: multerNasabahStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024,
   },
   fileFilter: (_req: any, file: any, cb: any) => {
     const rawExt = extname(file.originalname || '').toLowerCase();
@@ -94,13 +88,7 @@ const multerNasabahOptions = {
 
 @ApiTags('Admin Nasabah')
 @ApiBearerAuth('JWT-auth')
-@ApiHeader({
-  name: 'x-app-key',
-  description: 'Tenant App Key yang valid',
-  required: true,
-})
 @Controller('api/v1/admin/nasabah')
-@UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class NasabahController {
   constructor(
@@ -121,15 +109,15 @@ export class NasabahController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Token atau App Key tidak valid',
+    description: 'Unauthorized - Token tidak valid',
   })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - Hanya Admin yang berhak mengakses',
   })
   @ResponseMessage('Daftar data nasabah berhasil dimuat')
-  async findAll(@CurrentAppMaker('id') appMakerId: string) {
-    return this.nasabahService.findAll(appMakerId);
+  async findAll() {
+    return this.nasabahService.findAll();
   }
 
   @Post()
@@ -155,7 +143,6 @@ export class NasabahController {
   })
   @ResponseMessage('Data nasabah berhasil ditambahkan')
   async create(
-    @CurrentAppMaker('id') appMakerId: string,
     @Body() dto: CreateNasabahDto,
     @UploadedFile() file?: any,
   ) {
@@ -165,7 +152,7 @@ export class NasabahController {
     }
 
     try {
-      return await this.nasabahService.create(appMakerId, dto, fotoUrl);
+      return await this.nasabahService.create(dto, fotoUrl);
     } catch (error) {
       if (file?.path && existsSync(file.path)) {
         try {
@@ -194,11 +181,8 @@ export class NasabahController {
     description: 'Data nasabah tidak ditemukan',
   })
   @ResponseMessage('Detail data nasabah berhasil dimuat')
-  async findOne(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Param('id') id: string,
-  ) {
-    return this.nasabahService.findOne(appMakerId, id);
+  async findOne(@Param('id') id: string) {
+    return this.nasabahService.findOne(id);
   }
 
   @Put(':id')
@@ -220,7 +204,6 @@ export class NasabahController {
   })
   @ResponseMessage('Data nasabah berhasil diperbarui')
   async update(
-    @CurrentAppMaker('id') appMakerId: string,
     @Param('id') id: string,
     @Body() dto: UpdateNasabahDto,
     @UploadedFile() file?: any,
@@ -231,7 +214,7 @@ export class NasabahController {
     }
 
     try {
-      return await this.nasabahService.update(appMakerId, id, dto, fotoUrl);
+      return await this.nasabahService.update(id, dto, fotoUrl);
     } catch (error) {
       if (file?.path && existsSync(file.path)) {
         try {
@@ -260,10 +243,7 @@ export class NasabahController {
     description: 'Data nasabah tidak ditemukan',
   })
   @ResponseMessage('Data nasabah berhasil dihapus')
-  async remove(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Param('id') id: string,
-  ) {
-    return this.nasabahService.remove(appMakerId, id);
+  async remove(@Param('id') id: string) {
+    return this.nasabahService.remove(id);
   }
 }

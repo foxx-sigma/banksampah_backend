@@ -7,11 +7,3 @@ export const CurrentUser = createParamDecorator(
     return data ? user?.[data] : user;
   },
 );
-
-export const CurrentAppMaker = createParamDecorator(
-  (data: string | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
-    const appMaker = request.appMaker;
-    return data ? appMaker?.[data] : appMaker;
-  },
-);

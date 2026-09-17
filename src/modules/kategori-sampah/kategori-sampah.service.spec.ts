@@ -11,12 +11,10 @@ describe('KategoriSampahService', () => {
   let prismaMock: any;
   let storageMock: any;
 
-  const mockAppMakerId = 'tenant-maker-123';
   const mockKategoriId = 'kategori-abc-456';
 
   const mockKategori = {
     id: mockKategoriId,
-    appMakerId: mockAppMakerId,
     namaKategori: 'Botol Plastik PET',
     hargaPerKg: 3000,
     poinPerKg: 10,
@@ -54,13 +52,12 @@ describe('KategoriSampahService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all categories belonging to the appMakerId', async () => {
+    it('should return all categories', async () => {
       prismaMock.kategoriSampah.findMany.mockResolvedValue([mockKategori]);
 
-      const result = await service.findAll(mockAppMakerId);
+      const result = await service.findAll();
 
       expect(prismaMock.kategoriSampah.findMany).toHaveBeenCalledWith({
-        where: { appMakerId: mockAppMakerId },
         orderBy: { createdAt: 'desc' },
       });
       expect(result).toHaveLength(1);
@@ -79,22 +76,16 @@ describe('KategoriSampahService', () => {
 
       prismaMock.kategoriSampah.create.mockResolvedValue({
         id: 'new-kategori-id',
-        appMakerId: mockAppMakerId,
         ...createDto,
         foto: 'https://supabase.co/foto.jpg',
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      const result = await service.create(
-        mockAppMakerId,
-        createDto,
-        'https://supabase.co/foto.jpg',
-      );
+      const result = await service.create(createDto, 'https://supabase.co/foto.jpg');
 
       expect(prismaMock.kategoriSampah.create).toHaveBeenCalledWith({
         data: {
-          appMakerId: mockAppMakerId,
           namaKategori: 'Kardus Bekas',
           hargaPerKg: 1500,
           poinPerKg: 5,
@@ -103,27 +94,26 @@ describe('KategoriSampahService', () => {
         },
       });
       expect(result.namaKategori).toBe('Kardus Bekas');
-      expect(result.jenis).toBe(JenisSampah.kertas);
     });
   });
 
   describe('findOne', () => {
-    it('should return category when found within same tenant', async () => {
+    it('should return category when found', async () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(mockKategori);
 
-      const result = await service.findOne(mockAppMakerId, mockKategoriId);
+      const result = await service.findOne(mockKategoriId);
 
       expect(prismaMock.kategoriSampah.findFirst).toHaveBeenCalledWith({
-        where: { id: mockKategoriId, appMakerId: mockAppMakerId },
+        where: { id: mockKategoriId },
       });
       expect(result.id).toBe(mockKategoriId);
     });
 
-    it('should throw NotFoundException if category not found or belongs to another tenant', async () => {
+    it('should throw NotFoundException if category not found', async () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.findOne(mockAppMakerId, 'unknown-id'),
+        service.findOne('unknown-id'),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -133,7 +123,7 @@ describe('KategoriSampahService', () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update(mockAppMakerId, 'unknown-id', { namaKategori: 'Update' }),
+        service.update('unknown-id', { namaKategori: 'Update' }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -146,7 +136,6 @@ describe('KategoriSampahService', () => {
       });
 
       const result = await service.update(
-        mockAppMakerId,
         mockKategoriId,
         {
           namaKategori: 'Botol Plastik Tebal',
@@ -164,11 +153,11 @@ describe('KategoriSampahService', () => {
   });
 
   describe('remove', () => {
-    it('should throw NotFoundException if category not found in caller tenant', async () => {
+    it('should throw NotFoundException if category not found', async () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove(mockAppMakerId, 'unknown-id'),
+        service.remove('unknown-id'),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -176,7 +165,7 @@ describe('KategoriSampahService', () => {
       prismaMock.kategoriSampah.findFirst.mockResolvedValue(mockKategori);
       prismaMock.kategoriSampah.delete.mockResolvedValue(mockKategori);
 
-      const result = await service.remove(mockAppMakerId, mockKategoriId);
+      const result = await service.remove(mockKategoriId);
 
       expect(prismaMock.kategoriSampah.delete).toHaveBeenCalledWith({
         where: { id: mockKategoriId },

@@ -47,15 +47,7 @@ export class JwtAuthGuard implements CanActivate {
           const payload = await this.jwtService.verifyAsync(token, {
             secret,
           });
-
-          // Jika token menyertakan tenant, pastikan cocok dengan x-app-key jika ada
-          if (
-            !request.appMakerId ||
-            !payload.appMakerId ||
-            payload.appMakerId === request.appMakerId
-          ) {
-            request.user = payload;
-          }
+          request.user = payload;
         } catch {
           // Token invalid on public route, ignore and continue as unauthenticated
         }
@@ -73,40 +65,17 @@ export class JwtAuthGuard implements CanActivate {
         secret,
       });
 
-      // Validasi isolasi multi-tenant: jika request terikat appMakerId dan payload juga memuat appMakerId, keduanya harus identik
-      if (
-        request.appMakerId &&
-        payload.appMakerId &&
-        payload.appMakerId !== request.appMakerId
-      ) {
-        throw new UnauthorizedException(
-          'Sesi otentikasi tidak valid untuk App Key yang digunakan',
-        );
-      }
-
       if (this.prisma) {
         const userId = payload.userId || payload.sub;
         if (userId) {
-          if (payload.role === 'MAKER') {
-            const maker = await this.prisma.appMaker.findUnique({
-              where: { id: userId },
-              select: { id: true },
-            });
-            if (!maker) {
-              throw new UnauthorizedException(
-                'Sesi otentikasi tidak valid: pengguna sudah tidak aktif',
-              );
-            }
-          } else {
-            const user = await this.prisma.user.findUnique({
-              where: { id: userId },
-              select: { id: true, appMakerId: true, role: true },
-            });
-            if (!user) {
-              throw new UnauthorizedException(
-                'Sesi otentikasi tidak valid: pengguna sudah tidak aktif',
-              );
-            }
+          const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, role: true },
+          });
+          if (!user) {
+            throw new UnauthorizedException(
+              'Sesi otentikasi tidak valid: pengguna sudah tidak aktif',
+            );
           }
         }
       }

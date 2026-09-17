@@ -8,13 +8,11 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiHeader,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PenukaranPoinService } from './penukaran-poin.service.js';
@@ -25,26 +23,16 @@ import {
 } from './dto/index.js';
 import {
   Roles,
-  AppKeyGuard,
-  JwtAuthGuard,
-  RolesGuard,
   ResponseMessage,
-  CurrentAppMaker,
   CurrentUser,
 } from '../../common/index.js';
 
 @ApiTags('Penukaran Poin')
 @ApiBearerAuth('JWT-auth')
-@ApiHeader({
-  name: 'x-app-key',
-  description: 'Tenant App Key yang valid',
-  required: true,
-})
 @Controller('api/v1/penukaran-poin')
 export class PenukaranPoinController {
   constructor(private readonly penukaranPoinService: PenukaranPoinService) {}
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('NASABAH')
   @Post('tukar')
   @HttpCode(HttpStatus.CREATED)
@@ -67,15 +55,13 @@ export class PenukaranPoinController {
   })
   @ResponseMessage('Penukaran poin berhasil diajukan')
   async tukarPoin(
-    @CurrentAppMaker('id') appMakerId: string,
     @CurrentUser() user: any,
     @Body() dto: CreatePenukaranPoinDto,
   ) {
     const userId = user?.userId || user?.id || user?.sub;
-    return this.penukaranPoinService.tukarPoin(appMakerId, userId, dto);
+    return this.penukaranPoinService.tukarPoin(userId, dto);
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('NASABAH')
   @Get('my-penukaran')
   @HttpCode(HttpStatus.OK)
@@ -90,15 +76,13 @@ export class PenukaranPoinController {
   })
   @ResponseMessage('Histori penukaran poin berhasil dimuat')
   async findMyPenukaran(
-    @CurrentAppMaker('id') appMakerId: string,
     @CurrentUser() user: any,
     @Query() query: QueryPenukaranPoinDto,
   ) {
     const userId = user?.userId || user?.id || user?.sub;
-    return this.penukaranPoinService.findMyPenukaran(appMakerId, userId, query);
+    return this.penukaranPoinService.findMyPenukaran(userId, query);
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Get('admin/list')
   @HttpCode(HttpStatus.OK)
@@ -116,14 +100,10 @@ export class PenukaranPoinController {
     description: 'Forbidden - Hanya Admin yang berhak mengakses',
   })
   @ResponseMessage('Daftar transaksi penukaran poin berhasil dimuat')
-  async findAllAdmin(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Query() query: QueryPenukaranPoinDto,
-  ) {
-    return this.penukaranPoinService.findAllAdmin(appMakerId, query);
+  async findAllAdmin(@Query() query: QueryPenukaranPoinDto) {
+    return this.penukaranPoinService.findAllAdmin(query);
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Put('admin/status/:id')
   @HttpCode(HttpStatus.OK)
@@ -142,14 +122,12 @@ export class PenukaranPoinController {
   })
   @ResponseMessage('Status penukaran poin berhasil diperbarui')
   async updateStatus(
-    @CurrentAppMaker('id') appMakerId: string,
     @Param('id') id: string,
     @Body() dto: UpdateStatusPenukaranDto,
   ) {
-    return this.penukaranPoinService.updateStatus(appMakerId, id, dto);
+    return this.penukaranPoinService.updateStatus(id, dto);
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('NASABAH', 'ADMIN')
   @Get('nota/:id')
   @HttpCode(HttpStatus.OK)
@@ -168,10 +146,9 @@ export class PenukaranPoinController {
   })
   @ResponseMessage('Nota transaksi penukaran poin berhasil dimuat')
   async getNota(
-    @CurrentAppMaker('id') appMakerId: string,
     @Param('id') id: string,
     @CurrentUser() user: any,
   ) {
-    return this.penukaranPoinService.getNota(appMakerId, id, user);
+    return this.penukaranPoinService.getNota(id, user);
   }
 }

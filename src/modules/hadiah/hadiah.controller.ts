@@ -8,7 +8,6 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -18,7 +17,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiHeader,
   ApiBearerAuth,
   ApiConsumes,
 } from '@nestjs/swagger';
@@ -32,11 +30,7 @@ import { CreateHadiahDto, UpdateHadiahDto } from './dto/index.js';
 import {
   Public,
   Roles,
-  AppKeyGuard,
-  JwtAuthGuard,
-  RolesGuard,
   ResponseMessage,
-  CurrentAppMaker,
   StorageService,
 } from '../../common/index.js';
 
@@ -81,7 +75,7 @@ const multerHadiahStorage = diskStorage({
 const multerHadiahOptions = {
   storage: multerHadiahStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024,
   },
   fileFilter: (_req: any, file: any, cb: any) => {
     const rawExt = extname(file.originalname || '').toLowerCase();
@@ -98,11 +92,6 @@ const multerHadiahOptions = {
 };
 
 @ApiTags('Hadiah')
-@ApiHeader({
-  name: 'x-app-key',
-  description: 'Tenant App Key yang valid',
-  required: true,
-})
 @Controller('api/v1/hadiah')
 export class HadiahController {
   constructor(
@@ -111,7 +100,6 @@ export class HadiahController {
   ) {}
 
   @Public()
-  @UseGuards(AppKeyGuard)
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -124,11 +112,10 @@ export class HadiahController {
     description: 'Daftar katalog hadiah berhasil dimuat',
   })
   @ResponseMessage('Daftar katalog hadiah berhasil dimuat')
-  async findAll(@CurrentAppMaker('id') appMakerId: string) {
-    return this.hadiahService.findAll(appMakerId);
+  async findAll() {
+    return this.hadiahService.findAll();
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -154,7 +141,6 @@ export class HadiahController {
   })
   @ResponseMessage('Hadiah berhasil ditambahkan')
   async create(
-    @CurrentAppMaker('id') appMakerId: string,
     @Body() dto: CreateHadiahDto,
     @UploadedFile() file?: any,
   ) {
@@ -164,7 +150,7 @@ export class HadiahController {
     }
 
     try {
-      return await this.hadiahService.create(appMakerId, dto, fotoUrl);
+      return await this.hadiahService.create(dto, fotoUrl);
     } catch (error) {
       if (file?.path && existsSync(file.path)) {
         try {
@@ -178,7 +164,6 @@ export class HadiahController {
   }
 
   @Public()
-  @UseGuards(AppKeyGuard)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -195,14 +180,10 @@ export class HadiahController {
     description: 'Data hadiah tidak ditemukan',
   })
   @ResponseMessage('Detail hadiah berhasil dimuat')
-  async findOne(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Param('id') id: string,
-  ) {
-    return this.hadiahService.findOne(appMakerId, id);
+  async findOne(@Param('id') id: string) {
+    return this.hadiahService.findOne(id);
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Put(':id')
   @HttpCode(HttpStatus.OK)
@@ -224,7 +205,6 @@ export class HadiahController {
   })
   @ResponseMessage('Hadiah berhasil diperbarui')
   async update(
-    @CurrentAppMaker('id') appMakerId: string,
     @Param('id') id: string,
     @Body() dto: UpdateHadiahDto,
     @UploadedFile() file?: any,
@@ -235,7 +215,7 @@ export class HadiahController {
     }
 
     try {
-      return await this.hadiahService.update(appMakerId, id, dto, fotoUrl);
+      return await this.hadiahService.update(id, dto, fotoUrl);
     } catch (error) {
       if (file?.path && existsSync(file.path)) {
         try {
@@ -248,7 +228,6 @@ export class HadiahController {
     }
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
@@ -267,10 +246,7 @@ export class HadiahController {
     description: 'Data hadiah tidak ditemukan',
   })
   @ResponseMessage('Hadiah berhasil dihapus')
-  async remove(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Param('id') id: string,
-  ) {
-    return this.hadiahService.remove(appMakerId, id);
+  async remove(@Param('id') id: string) {
+    return this.hadiahService.remove(id);
   }
 }

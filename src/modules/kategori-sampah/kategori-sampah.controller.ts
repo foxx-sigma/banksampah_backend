@@ -8,7 +8,6 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -18,7 +17,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiHeader,
   ApiBearerAuth,
   ApiConsumes,
 } from '@nestjs/swagger';
@@ -35,11 +33,7 @@ import {
 import {
   Public,
   Roles,
-  AppKeyGuard,
-  JwtAuthGuard,
-  RolesGuard,
   ResponseMessage,
-  CurrentAppMaker,
   StorageService,
 } from '../../common/index.js';
 
@@ -84,7 +78,7 @@ const multerSampahStorage = diskStorage({
 const multerSampahOptions = {
   storage: multerSampahStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024,
   },
   fileFilter: (_req: any, file: any, cb: any) => {
     const rawExt = extname(file.originalname || '').toLowerCase();
@@ -101,11 +95,6 @@ const multerSampahOptions = {
 };
 
 @ApiTags('Kategori Sampah')
-@ApiHeader({
-  name: 'x-app-key',
-  description: 'Tenant App Key yang valid',
-  required: true,
-})
 @Controller('api/v1/kategori-sampah')
 export class KategoriSampahController {
   constructor(
@@ -114,7 +103,6 @@ export class KategoriSampahController {
   ) {}
 
   @Public()
-  @UseGuards(AppKeyGuard)
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -127,11 +115,10 @@ export class KategoriSampahController {
     description: 'Daftar kategori sampah berhasil dimuat',
   })
   @ResponseMessage('Daftar kategori sampah berhasil dimuat')
-  async findAll(@CurrentAppMaker('id') appMakerId: string) {
-    return this.kategoriSampahService.findAll(appMakerId);
+  async findAll() {
+    return this.kategoriSampahService.findAll();
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -157,7 +144,6 @@ export class KategoriSampahController {
   })
   @ResponseMessage('Kategori sampah berhasil ditambahkan')
   async create(
-    @CurrentAppMaker('id') appMakerId: string,
     @Body() dto: CreateKategoriSampahDto,
     @UploadedFile() file?: any,
   ) {
@@ -167,7 +153,7 @@ export class KategoriSampahController {
     }
 
     try {
-      return await this.kategoriSampahService.create(appMakerId, dto, fotoUrl);
+      return await this.kategoriSampahService.create(dto, fotoUrl);
     } catch (error) {
       if (file?.path && existsSync(file.path)) {
         try {
@@ -181,7 +167,6 @@ export class KategoriSampahController {
   }
 
   @Public()
-  @UseGuards(AppKeyGuard)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -198,14 +183,10 @@ export class KategoriSampahController {
     description: 'Data kategori sampah tidak ditemukan',
   })
   @ResponseMessage('Detail kategori sampah berhasil dimuat')
-  async findOne(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Param('id') id: string,
-  ) {
-    return this.kategoriSampahService.findOne(appMakerId, id);
+  async findOne(@Param('id') id: string) {
+    return this.kategoriSampahService.findOne(id);
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Put(':id')
   @HttpCode(HttpStatus.OK)
@@ -227,7 +208,6 @@ export class KategoriSampahController {
   })
   @ResponseMessage('Kategori sampah berhasil diperbarui')
   async update(
-    @CurrentAppMaker('id') appMakerId: string,
     @Param('id') id: string,
     @Body() dto: UpdateKategoriSampahDto,
     @UploadedFile() file?: any,
@@ -238,12 +218,7 @@ export class KategoriSampahController {
     }
 
     try {
-      return await this.kategoriSampahService.update(
-        appMakerId,
-        id,
-        dto,
-        fotoUrl,
-      );
+      return await this.kategoriSampahService.update(id, dto, fotoUrl);
     } catch (error) {
       if (file?.path && existsSync(file.path)) {
         try {
@@ -256,7 +231,6 @@ export class KategoriSampahController {
     }
   }
 
-  @UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
@@ -275,10 +249,7 @@ export class KategoriSampahController {
     description: 'Data kategori sampah tidak ditemukan',
   })
   @ResponseMessage('Kategori sampah berhasil dihapus')
-  async remove(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Param('id') id: string,
-  ) {
-    return this.kategoriSampahService.remove(appMakerId, id);
+  async remove(@Param('id') id: string) {
+    return this.kategoriSampahService.remove(id);
   }
 }

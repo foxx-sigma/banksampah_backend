@@ -16,7 +16,6 @@ export class SetorSampahService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createPengajuan(
-    appMakerId: string,
     userId: string,
     dto: CreateSetorSampahDto,
   ) {
@@ -24,7 +23,7 @@ export class SetorSampahService {
       where: { userId },
     });
 
-    if (!nasabah || nasabah.appMakerId !== appMakerId) {
+    if (!nasabah) {
       throw new NotFoundException('Data profil nasabah tidak ditemukan');
     }
 
@@ -34,7 +33,7 @@ export class SetorSampahService {
 
     for (const item of dto.items) {
       const kategori = await this.prisma.kategoriSampah.findFirst({
-        where: { id: item.kategoriSampahId, appMakerId },
+        where: { id: item.kategoriSampahId },
       });
 
       if (!kategori) {
@@ -48,7 +47,6 @@ export class SetorSampahService {
       estimasiTotalPoin += subtotalPoin;
 
       detailCreates.push({
-        appMakerId,
         kategoriSampahId: item.kategoriSampahId,
         beratKg: item.beratKg,
         poinPerKg: kategori.poinPerKg,
@@ -63,45 +61,41 @@ export class SetorSampahService {
     const randomSuffix = randomUUID().replace(/-/g, '').substring(0, 4).toUpperCase();
     const kodeSetor = `STR-${year}${month}-${randomSuffix}`;
 
-    return this.prisma.$transaction(async (tx) => {
-      const setor = await tx.setorSampah.create({
-        data: {
-          kodeSetor,
-          appMakerId,
-          nasabahId: nasabah.id,
-          tanggal: now,
-          totalBeratKg: Number(totalBeratKg.toFixed(2)),
-          estimasiTotalPoin,
-          status: 'menunggu_konfirmasi',
-          catatan: dto.catatan?.trim() || null,
-          detailSetor: {
-            create: detailCreates,
+    const setor = await this.prisma.setorSampah.create({
+      data: {
+        kodeSetor,
+        nasabahId: nasabah.id,
+        tanggal: now,
+        totalBeratKg: Number(totalBeratKg.toFixed(2)),
+        estimasiTotalPoin,
+        status: 'menunggu_konfirmasi',
+        catatan: dto.catatan?.trim() || null,
+        detailSetor: {
+          create: detailCreates,
+        },
+      },
+      include: {
+        nasabah: {
+          select: {
+            id: true,
+            namaNasabah: true,
+            alamat: true,
+            telp: true,
+            saldoPoin: true,
           },
         },
-        include: {
-          nasabah: {
-            select: {
-              id: true,
-              namaNasabah: true,
-              alamat: true,
-              telp: true,
-              saldoPoin: true,
-            },
-          },
-          detailSetor: {
-            include: {
-              kategoriSampah: true,
-            },
+        detailSetor: {
+          include: {
+            kategoriSampah: true,
           },
         },
-      });
-
-      return setor;
+      },
     });
+
+    return setor;
   }
 
   async findMySetor(
-    appMakerId: string,
     userId: string,
     query: QuerySetorSampahDto,
   ) {
@@ -109,12 +103,11 @@ export class SetorSampahService {
       where: { userId },
     });
 
-    if (!nasabah || nasabah.appMakerId !== appMakerId) {
+    if (!nasabah) {
       throw new NotFoundException('Data profil nasabah tidak ditemukan');
     }
 
     const where: any = {
-      appMakerId,
       nasabahId: nasabah.id,
     };
 
@@ -145,8 +138,8 @@ export class SetorSampahService {
     });
   }
 
-  async findAllAdmin(appMakerId: string, query: QuerySetorSampahDto) {
-    const where: any = { appMakerId };
+  async findAllAdmin(query: QuerySetorSampahDto) {
+    const where: any = {};
 
     if (query.status) {
       where.status = query.status;
@@ -185,12 +178,11 @@ export class SetorSampahService {
   }
 
   async findOne(
-    appMakerId: string,
     id: string,
     user: { role: string; userId?: string; id?: string; sub?: string },
   ) {
     const setor = await this.prisma.setorSampah.findFirst({
-      where: { id, appMakerId },
+      where: { id },
       include: {
         nasabah: {
           select: {
@@ -224,9 +216,9 @@ export class SetorSampahService {
     return setor;
   }
 
-  async verify(appMakerId: string, id: string, dto: VerifySetorSampahDto) {
+  async verify(id: string, dto: VerifySetorSampahDto) {
     const existing = await this.prisma.setorSampah.findFirst({
-      where: { id, appMakerId },
+      where: { id },
       include: {
         detailSetor: true,
       },
@@ -287,56 +279,54 @@ export class SetorSampahService {
         ? totalPoinReal
         : existing.estimasiTotalPoin;
 
-    return this.prisma.$transaction(async (tx) => {
-      for (const du of detailUpdates) {
-        await tx.detailSetor.update({
-          where: { id: du.id },
-          data: {
-            beratKgReal: du.beratKgReal,
-            subtotalPoinReal: du.subtotalPoinReal,
-          },
-        });
-      }
-
-      if (dto.status === 'selesai' && !wasAlreadySelesai && pointsToAdd > 0) {
-        await tx.nasabah.update({
-          where: { id: existing.nasabahId },
-          data: {
-            saldoPoin: { increment: pointsToAdd },
-          },
-        });
-      }
-
-      const updated = await tx.setorSampah.update({
-        where: { id },
+    for (const du of detailUpdates) {
+      await this.prisma.detailSetor.update({
+        where: { id: du.id },
         data: {
-          status: dto.status,
-          catatanAdmin:
-            dto.catatanAdmin !== undefined
-              ? dto.catatanAdmin.trim()
-              : existing.catatanAdmin,
-          totalBeratKgReal,
-          totalPoinReal,
-        },
-        include: {
-          nasabah: {
-            select: {
-              id: true,
-              namaNasabah: true,
-              alamat: true,
-              telp: true,
-              saldoPoin: true,
-            },
-          },
-          detailSetor: {
-            include: {
-              kategoriSampah: true,
-            },
-          },
+          beratKgReal: du.beratKgReal,
+          subtotalPoinReal: du.subtotalPoinReal,
         },
       });
+    }
 
-      return updated;
+    if (dto.status === 'selesai' && !wasAlreadySelesai && pointsToAdd > 0) {
+      await this.prisma.nasabah.update({
+        where: { id: existing.nasabahId },
+        data: {
+          saldoPoin: { increment: pointsToAdd },
+        },
+      });
+    }
+
+    const updated = await this.prisma.setorSampah.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        catatanAdmin:
+          dto.catatanAdmin !== undefined
+            ? dto.catatanAdmin.trim()
+            : existing.catatanAdmin,
+        totalBeratKgReal,
+        totalPoinReal,
+      },
+      include: {
+        nasabah: {
+          select: {
+            id: true,
+            namaNasabah: true,
+            alamat: true,
+            telp: true,
+            saldoPoin: true,
+          },
+        },
+        detailSetor: {
+          include: {
+            kategoriSampah: true,
+          },
+        },
+      },
     });
+
+    return updated;
   }
 }

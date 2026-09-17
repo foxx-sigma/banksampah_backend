@@ -1,11 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AppService } from './app.service.js';
-import { Public, SkipAppKey } from './common/index.js';
+import { Public } from './common/index.js';
 
 @ApiTags('Root / Health')
 @Public()
-@SkipAppKey()
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}

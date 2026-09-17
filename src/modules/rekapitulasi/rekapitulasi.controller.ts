@@ -4,35 +4,23 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiHeader,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { RekapitulasiService } from './rekapitulasi.service.js';
 import { RekapitulasiQueryDto } from './dto/index.js';
 import {
   Roles,
-  AppKeyGuard,
-  JwtAuthGuard,
-  RolesGuard,
   ResponseMessage,
-  CurrentAppMaker,
 } from '../../common/index.js';
 
 @ApiTags('Rekapitulasi')
 @ApiBearerAuth('JWT-auth')
-@ApiHeader({
-  name: 'x-app-key',
-  description: 'Tenant App Key yang valid',
-  required: true,
-})
 @Controller('api/v1/rekapitulasi')
-@UseGuards(AppKeyGuard, JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class RekapitulasiController {
   constructor(private readonly rekapitulasiService: RekapitulasiService) {}
@@ -57,10 +45,7 @@ export class RekapitulasiController {
     description: 'Forbidden - Hanya Admin yang berhak mengakses',
   })
   @ResponseMessage('Rekapitulasi bulanan berhasil dimuat')
-  async getRekapitulasiBulanan(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Query() query: RekapitulasiQueryDto,
-  ) {
-    return this.rekapitulasiService.getRekapitulasiBulanan(appMakerId, query);
+  async getRekapitulasiBulanan(@Query() query: RekapitulasiQueryDto) {
+    return this.rekapitulasiService.getRekapitulasiBulanan(query);
   }
 }

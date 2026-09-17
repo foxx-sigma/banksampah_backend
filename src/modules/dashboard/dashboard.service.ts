@@ -5,64 +5,60 @@ import { PrismaService } from '../../common/prisma.service.js';
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSummary(appMakerId: string, userId: string) {
+  async getSummary(userId: string) {
     const nasabah = await this.prisma.nasabah.findUnique({
       where: { userId },
     });
 
-    if (!nasabah || nasabah.appMakerId !== appMakerId) {
+    if (!nasabah) {
       throw new NotFoundException('Data profil nasabah tidak ditemukan');
     }
 
-    const [setorSelesai, penukaranList, transaksiTerakhirSetor, transaksiTerakhirTukar] =
-      await Promise.all([
-        this.prisma.setorSampah.findMany({
-          where: {
-            appMakerId,
-            nasabahId: nasabah.id,
-            status: 'selesai',
-          },
-          select: {
-            totalBeratKg: true,
-            totalBeratKgReal: true,
-            estimasiTotalPoin: true,
-            totalPoinReal: true,
-          },
-        }),
-        this.prisma.penukaranPoin.findMany({
-          where: {
-            appMakerId,
-            nasabahId: nasabah.id,
-          },
-          select: {
-            poinDigunakan: true,
-          },
-        }),
-        this.prisma.setorSampah.findFirst({
-          where: {
-            appMakerId,
-            nasabahId: nasabah.id,
-          },
-          orderBy: { createdAt: 'desc' },
+    const setorSelesai = await this.prisma.setorSampah.findMany({
+      where: {
+        nasabahId: nasabah.id,
+        status: 'selesai',
+      },
+      select: {
+        totalBeratKg: true,
+        totalBeratKgReal: true,
+        estimasiTotalPoin: true,
+        totalPoinReal: true,
+      },
+    });
+
+    const penukaranList = await this.prisma.penukaranPoin.findMany({
+      where: {
+        nasabahId: nasabah.id,
+      },
+      select: {
+        poinDigunakan: true,
+      },
+    });
+
+    const transaksiTerakhirSetor = await this.prisma.setorSampah.findFirst({
+      where: {
+        nasabahId: nasabah.id,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        detailSetor: {
           include: {
-            detailSetor: {
-              include: {
-                kategoriSampah: true,
-              },
-            },
+            kategoriSampah: true,
           },
-        }),
-        this.prisma.penukaranPoin.findFirst({
-          where: {
-            appMakerId,
-            nasabahId: nasabah.id,
-          },
-          orderBy: { createdAt: 'desc' },
-          include: {
-            hadiah: true,
-          },
-        }),
-      ]);
+        },
+      },
+    });
+
+    const transaksiTerakhirTukar = await this.prisma.penukaranPoin.findFirst({
+      where: {
+        nasabahId: nasabah.id,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        hadiah: true,
+      },
+    });
 
     let totalSampahDisetorKg = 0;
     let totalPoinDidapat = 0;
@@ -88,28 +84,20 @@ export class DashboardService {
     };
   }
 
-  async getStats(appMakerId: string) {
-    const [
-      totalNasabah,
-      totalKategoriSampah,
-      totalTransaksiSetor,
-      totalHadiah,
-      setorSelesai,
-    ] = await Promise.all([
-      this.prisma.nasabah.count({ where: { appMakerId } }),
-      this.prisma.kategoriSampah.count({ where: { appMakerId } }),
-      this.prisma.setorSampah.count({ where: { appMakerId } }),
-      this.prisma.hadiah.count({ where: { appMakerId } }),
-      this.prisma.setorSampah.findMany({
-        where: { appMakerId, status: 'selesai' },
-        select: {
-          totalBeratKg: true,
-          totalBeratKgReal: true,
-          estimasiTotalPoin: true,
-          totalPoinReal: true,
-        },
-      }),
-    ]);
+  async getStats() {
+    const totalNasabah = await this.prisma.nasabah.count();
+    const totalKategoriSampah = await this.prisma.kategoriSampah.count();
+    const totalTransaksiSetor = await this.prisma.setorSampah.count();
+    const totalHadiah = await this.prisma.hadiah.count();
+    const setorSelesai = await this.prisma.setorSampah.findMany({
+      where: { status: 'selesai' },
+      select: {
+        totalBeratKg: true,
+        totalBeratKgReal: true,
+        estimasiTotalPoin: true,
+        totalPoinReal: true,
+      },
+    });
 
     let totalBeratSampahKg = 0;
     let totalPoinTersalurkan = 0;

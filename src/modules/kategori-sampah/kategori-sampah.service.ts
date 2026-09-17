@@ -13,21 +13,18 @@ export class KategoriSampahService {
     private readonly storageService: StorageService,
   ) {}
 
-  async findAll(appMakerId: string) {
+  async findAll() {
     return this.prisma.kategoriSampah.findMany({
-      where: { appMakerId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async create(
-    appMakerId: string,
     dto: CreateKategoriSampahDto,
     fotoUrl?: string,
   ) {
     return this.prisma.kategoriSampah.create({
       data: {
-        appMakerId,
         namaKategori: dto.namaKategori.trim(),
         hargaPerKg: dto.hargaPerKg,
         poinPerKg: dto.poinPerKg,
@@ -37,12 +34,9 @@ export class KategoriSampahService {
     });
   }
 
-  async findOne(appMakerId: string, id: string) {
+  async findOne(id: string) {
     const kategori = await this.prisma.kategoriSampah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!kategori) {
@@ -53,16 +47,12 @@ export class KategoriSampahService {
   }
 
   async update(
-    appMakerId: string,
     id: string,
     dto: UpdateKategoriSampahDto,
     fotoUrl?: string,
   ) {
     const existing = await this.prisma.kategoriSampah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!existing) {
@@ -98,12 +88,9 @@ export class KategoriSampahService {
     return updated;
   }
 
-  async remove(appMakerId: string, id: string) {
+  async remove(id: string) {
     const existing = await this.prisma.kategoriSampah.findFirst({
-      where: {
-        id,
-        appMakerId,
-      },
+      where: { id },
     });
 
     if (!existing) {

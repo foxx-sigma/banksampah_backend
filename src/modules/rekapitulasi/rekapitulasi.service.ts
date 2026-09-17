@@ -6,10 +6,7 @@ import { RekapitulasiQueryDto } from './dto/index.js';
 export class RekapitulasiService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getRekapitulasiBulanan(
-    appMakerId: string,
-    query: RekapitulasiQueryDto,
-  ) {
+  async getRekapitulasiBulanan(query: RekapitulasiQueryDto) {
     if (!query.bulan || !/^\d{4}-\d{2}$/.test(query.bulan)) {
       throw new BadRequestException(
         'Parameter bulan wajib diisi dengan format YYYY-MM',
@@ -25,7 +22,6 @@ export class RekapitulasiService {
 
     const setorSelesai = await this.prisma.setorSampah.findMany({
       where: {
-        appMakerId,
         status: 'selesai',
         tanggal: {
           gte: startDate,
@@ -95,7 +91,6 @@ export class RekapitulasiService {
 
     const penukaranSelesai = await this.prisma.penukaranPoin.findMany({
       where: {
-        appMakerId,
         status: 'selesai',
         tanggal: {
           gte: startDate,

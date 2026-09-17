@@ -7,7 +7,6 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import {
   PrismaService,
-  AppKeyGuard,
   JwtAuthGuard,
   RolesGuard,
   GlobalExceptionFilter,
@@ -15,7 +14,6 @@ import {
   StorageService,
 } from './common/index.js';
 
-import { AppMakerModule } from './modules/app-maker/app-maker.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { NasabahModule } from './modules/nasabah/nasabah.module.js';
 import { KategoriSampahModule } from './modules/kategori-sampah/kategori-sampah.module.js';
@@ -30,7 +28,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
-    AppMakerModule,
     AuthModule,
     NasabahModule,
     KategoriSampahModule,
@@ -56,7 +53,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         }
         return {
           secret,
-          signOptions: { expiresIn: '7d' },
+          signOptions: { expiresIn: '24h' },
         };
       },
     }),
@@ -76,10 +73,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     AppService,
     PrismaService,
     StorageService,
-    {
-      provide: APP_GUARD,
-      useClass: AppKeyGuard,
-    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

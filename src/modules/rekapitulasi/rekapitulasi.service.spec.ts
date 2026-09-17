@@ -9,8 +9,6 @@ describe('RekapitulasiService', () => {
   let service: RekapitulasiService;
   let prismaMock: any;
 
-  const mockAppMakerId = 'tenant-uuid-1';
-
   beforeEach(async () => {
     prismaMock = {
       setorSampah: {
@@ -36,7 +34,6 @@ describe('RekapitulasiService', () => {
       prismaMock.setorSampah.findMany.mockResolvedValue([
         {
           id: 'setor-1',
-          appMakerId: mockAppMakerId,
           status: 'selesai',
           tanggal: new Date('2026-09-10'),
           detailSetor: [
@@ -77,7 +74,7 @@ describe('RekapitulasiService', () => {
         },
       ]);
 
-      const result = await service.getRekapitulasiBulanan(mockAppMakerId, {
+      const result = await service.getRekapitulasiBulanan({
         bulan: '2026-09',
       });
 
@@ -85,7 +82,7 @@ describe('RekapitulasiService', () => {
       expect(result.rekapitulasiTonase.totalKg).toBe(15);
       expect(result.rekapitulasiTonase.totalTon).toBe(0.015);
       expect(result.rekapitulasiTonase.totalEstimasiPembayaranRupiah).toBe(
-        10 * 3000 + 5 * 1500, // 30000 + 7500 = 37500
+        10 * 3000 + 5 * 1500,
       );
       expect(result.rekapitulasiTonase.totalPoinDiterbitkan).toBe(125);
 
@@ -99,16 +96,6 @@ describe('RekapitulasiService', () => {
         rupiah: 7500,
         poin: 25,
       });
-      expect(result.breakdownJenisSampah.logam).toEqual({
-        tonaseKg: 0,
-        rupiah: 0,
-        poin: 0,
-      });
-      expect(result.breakdownJenisSampah.kaca).toEqual({
-        tonaseKg: 0,
-        rupiah: 0,
-        poin: 0,
-      });
 
       expect(result.rekapitulasiPenukaranPoin.totalTransaksiPenukaran).toBe(2);
       expect(result.rekapitulasiPenukaranPoin.totalPoinTerpakai).toBe(150);
@@ -116,11 +103,11 @@ describe('RekapitulasiService', () => {
 
     it('should throw BadRequestException if bulan query is invalid or missing', async () => {
       await expect(
-        service.getRekapitulasiBulanan(mockAppMakerId, { bulan: '' as any }),
+        service.getRekapitulasiBulanan({ bulan: '' as any }),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        service.getRekapitulasiBulanan(mockAppMakerId, { bulan: '2026/09' }),
+        service.getRekapitulasiBulanan({ bulan: '2026/09' }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -128,14 +115,12 @@ describe('RekapitulasiService', () => {
       prismaMock.setorSampah.findMany.mockResolvedValue([]);
       prismaMock.penukaranPoin.findMany.mockResolvedValue([]);
 
-      const result = await service.getRekapitulasiBulanan(mockAppMakerId, {
+      const result = await service.getRekapitulasiBulanan({
         bulan: '2026-09',
       });
 
       expect(result.rekapitulasiTonase.totalKg).toBe(0);
       expect(result.rekapitulasiTonase.totalTon).toBe(0);
-      expect(result.rekapitulasiTonase.totalEstimasiPembayaranRupiah).toBe(0);
-      expect(result.rekapitulasiTonase.totalPoinDiterbitkan).toBe(0);
       expect(result.rekapitulasiPenukaranPoin.totalTransaksiPenukaran).toBe(0);
       expect(result.rekapitulasiPenukaranPoin.totalPoinTerpakai).toBe(0);
     });

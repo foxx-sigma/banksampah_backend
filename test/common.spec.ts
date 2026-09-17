@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExecutionContext, UnauthorizedException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
-  AppKeyGuard,
   JwtAuthGuard,
   RolesGuard,
   GlobalExceptionFilter,
@@ -15,93 +14,6 @@ describe('Common Infrastructure', () => {
 
   beforeEach(() => {
     reflector = new Reflector();
-  });
-
-  describe('AppKeyGuard', () => {
-    let prismaMock: any;
-    let guard: AppKeyGuard;
-
-    beforeEach(() => {
-      prismaMock = {
-        appMaker: {
-          findUnique: vi.fn(),
-        },
-      };
-      guard = new AppKeyGuard(reflector, prismaMock);
-    });
-
-    it('should skip validation if @SkipAppKey is set', async () => {
-      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
-      const context = {
-        getHandler: vi.fn(),
-        getClass: vi.fn(),
-        switchToHttp: vi.fn().mockReturnValue({
-          getRequest: vi.fn().mockReturnValue({ headers: {} }),
-        }),
-      } as unknown as ExecutionContext;
-
-      const result = await guard.canActivate(context);
-      expect(result).toBe(true);
-    });
-
-    it('should throw 401 Unauthorized if x-app-key is missing', async () => {
-      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
-      const context = {
-        getHandler: vi.fn(),
-        getClass: vi.fn(),
-        switchToHttp: vi.fn().mockReturnValue({
-          getRequest: vi.fn().mockReturnValue({ headers: {} }),
-        }),
-      } as unknown as ExecutionContext;
-
-      await expect(guard.canActivate(context)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw 401 Unauthorized if x-app-key is not found in database', async () => {
-      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
-      prismaMock.appMaker.findUnique.mockResolvedValue(null);
-
-      const context = {
-        getHandler: vi.fn(),
-        getClass: vi.fn(),
-        switchToHttp: vi.fn().mockReturnValue({
-          getRequest: vi.fn().mockReturnValue({
-            headers: { 'x-app-key': 'invalid-key' },
-          }),
-        }),
-      } as unknown as ExecutionContext;
-
-      await expect(guard.canActivate(context)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should bind appMakerId and allow request if x-app-key is valid', async () => {
-      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
-      prismaMock.appMaker.findUnique.mockResolvedValue({
-        id: 'maker-123',
-        appKey: 'valid-key',
-      });
-
-      const req: any = {
-        headers: { 'x-app-key': 'valid-key' },
-      };
-
-      const context = {
-        getHandler: vi.fn(),
-        getClass: vi.fn(),
-        switchToHttp: vi.fn().mockReturnValue({
-          getRequest: vi.fn().mockReturnValue(req),
-        }),
-      } as unknown as ExecutionContext;
-
-      const result = await guard.canActivate(context);
-      expect(result).toBe(true);
-      expect(req.appMakerId).toBe('maker-123');
-      expect(req.appMaker).toBeDefined();
-    });
   });
 
   describe('JwtAuthGuard', () => {
@@ -198,9 +110,6 @@ describe('Common Infrastructure', () => {
         user: {
           findUnique: vi.fn().mockResolvedValue(null),
         },
-        appMaker: {
-          findUnique: vi.fn().mockResolvedValue(null),
-        },
       };
 
       const guardWithPrisma = new JwtAuthGuard(
@@ -221,34 +130,6 @@ describe('Common Infrastructure', () => {
       } as unknown as ExecutionContext;
 
       await expect(guardWithPrisma.canActivate(context)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw 401 if cross-tenant appMakerId does not match', async () => {
-      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
-      const payload = {
-        sub: 'u1',
-        username: 'john',
-        role: 'NASABAH',
-        appMakerId: 'tenant-a',
-      };
-      jwtServiceMock.verifyAsync.mockResolvedValue(payload);
-
-      const req: any = {
-        headers: { authorization: 'Bearer good-token' },
-        appMakerId: 'tenant-b',
-      };
-
-      const context = {
-        getHandler: vi.fn(),
-        getClass: vi.fn(),
-        switchToHttp: vi.fn().mockReturnValue({
-          getRequest: vi.fn().mockReturnValue(req),
-        }),
-      } as unknown as ExecutionContext;
-
-      await expect(guard.canActivate(context)).rejects.toThrow(
         UnauthorizedException,
       );
     });

@@ -14,7 +14,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiHeader,
   ApiBearerAuth,
   ApiConsumes,
 } from '@nestjs/swagger';
@@ -32,7 +31,6 @@ import {
 import {
   Public,
   ResponseMessage,
-  CurrentAppMaker,
   CurrentUser,
   StorageService,
 } from '../../common/index.js';
@@ -74,7 +72,7 @@ const multerNasabahStorage = diskStorage({
 const multerNasabahOptions = {
   storage: multerNasabahStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024,
   },
   fileFilter: (_req: any, file: any, cb: any) => {
     const rawExt = extname(file.originalname || '').toLowerCase();
@@ -91,11 +89,6 @@ const multerNasabahOptions = {
 };
 
 @ApiTags('Auth')
-@ApiHeader({
-  name: 'x-app-key',
-  description: 'Tenant App Key yang valid',
-  required: true,
-})
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(
@@ -110,7 +103,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Registrasi nasabah baru',
     description:
-      'Mendaftarkan akun nasabah baru pada tenant bank sampah dengan opsional upload foto profil.',
+      'Mendaftarkan akun nasabah baru pada bank sampah dengan opsional upload foto profil.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({
@@ -127,7 +120,6 @@ export class AuthController {
   })
   @ResponseMessage('Registrasi nasabah berhasil')
   async registerNasabah(
-    @CurrentAppMaker('id') appMakerId: string,
     @Body() dto: RegisterNasabahBankDto,
     @UploadedFile() file?: any,
   ) {
@@ -136,7 +128,7 @@ export class AuthController {
       fotoUrl = await this.storageService.uploadFile('nasabah', file);
     }
     try {
-      return await this.authService.registerNasabah(appMakerId, dto, fotoUrl);
+      return await this.authService.registerNasabah(dto, fotoUrl);
     } catch (error) {
       if (file?.path && existsSync(file.path)) {
         try {
@@ -155,7 +147,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Registrasi admin bank sampah',
     description:
-      'Mendaftarkan akun administrator untuk unit bank sampah (hanya satu admin unit per tenant).',
+      'Mendaftarkan akun administrator untuk unit bank sampah (hanya satu admin per bank sampah).',
   })
   @ApiResponse({
     status: 201,
@@ -170,11 +162,8 @@ export class AuthController {
     description: 'Admin unit atau username sudah terdaftar',
   })
   @ResponseMessage('Registrasi admin berhasil')
-  async registerAdmin(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Body() dto: RegisterAdminBankDto,
-  ) {
-    return this.authService.registerAdmin(appMakerId, dto);
+  async registerAdmin(@Body() dto: RegisterAdminBankDto) {
+    return this.authService.registerAdmin(dto);
   }
 
   @Public()
@@ -194,11 +183,8 @@ export class AuthController {
     description: 'Username atau password salah',
   })
   @ResponseMessage('Login berhasil')
-  async login(
-    @CurrentAppMaker('id') appMakerId: string,
-    @Body() dto: LoginUserDto,
-  ) {
-    return this.authService.login(appMakerId, dto);
+  async login(@Body() dto: LoginUserDto) {
+    return this.authService.login(dto);
   }
 
   @Get('me')
@@ -222,11 +208,8 @@ export class AuthController {
     description: 'Pengguna tidak ditemukan',
   })
   @ResponseMessage('Profil pengguna berhasil dimuat')
-  async getMe(
-    @CurrentAppMaker('id') appMakerId: string,
-    @CurrentUser() user: any,
-  ) {
+  async getMe(@CurrentUser() user: any) {
     const userId = user?.userId || user?.sub;
-    return this.authService.getMe(appMakerId, userId);
+    return this.authService.getMe(userId);
   }
 }

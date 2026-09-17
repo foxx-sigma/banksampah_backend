@@ -10,12 +10,10 @@ describe('HadiahService', () => {
   let prismaMock: any;
   let storageMock: any;
 
-  const mockAppMakerId = 'tenant-maker-123';
   const mockHadiahId = 'hadiah-abc-456';
 
   const mockHadiah = {
     id: mockHadiahId,
-    appMakerId: mockAppMakerId,
     namaHadiah: 'Tumbler Stainless Steel',
     deskripsi: 'Tumbler ramah lingkungan 500ml',
     poinDibutuhkan: 250,
@@ -53,13 +51,12 @@ describe('HadiahService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all gifts belonging to the appMakerId', async () => {
+    it('should return all gifts', async () => {
       prismaMock.hadiah.findMany.mockResolvedValue([mockHadiah]);
 
-      const result = await service.findAll(mockAppMakerId);
+      const result = await service.findAll();
 
       expect(prismaMock.hadiah.findMany).toHaveBeenCalledWith({
-        where: { appMakerId: mockAppMakerId },
         orderBy: { createdAt: 'desc' },
       });
       expect(result).toHaveLength(1);
@@ -78,22 +75,16 @@ describe('HadiahService', () => {
 
       prismaMock.hadiah.create.mockResolvedValue({
         id: 'new-hadiah-id',
-        appMakerId: mockAppMakerId,
         ...createDto,
         foto: 'https://supabase.co/hadiah.jpg',
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      const result = await service.create(
-        mockAppMakerId,
-        createDto,
-        'https://supabase.co/hadiah.jpg',
-      );
+      const result = await service.create(createDto, 'https://supabase.co/hadiah.jpg');
 
       expect(prismaMock.hadiah.create).toHaveBeenCalledWith({
         data: {
-          appMakerId: mockAppMakerId,
           namaHadiah: 'Tas Belanja Ramah Lingkungan',
           deskripsi: 'Tote bag kanvas',
           poinDibutuhkan: 100,
@@ -104,7 +95,7 @@ describe('HadiahService', () => {
       expect(result.id).toBe('new-hadiah-id');
     });
 
-    it('should create a new gift without photo and deskripsi defaults to null', async () => {
+    it('should create a new gift without photo', async () => {
       const createDto = {
         namaHadiah: 'Payung Lipat',
         poinDibutuhkan: 150,
@@ -113,7 +104,6 @@ describe('HadiahService', () => {
 
       prismaMock.hadiah.create.mockResolvedValue({
         id: 'new-hadiah-id-2',
-        appMakerId: mockAppMakerId,
         namaHadiah: 'Payung Lipat',
         deskripsi: null,
         poinDibutuhkan: 150,
@@ -123,39 +113,29 @@ describe('HadiahService', () => {
         updatedAt: new Date(),
       });
 
-      const result = await service.create(mockAppMakerId, createDto);
+      const result = await service.create(createDto);
 
-      expect(prismaMock.hadiah.create).toHaveBeenCalledWith({
-        data: {
-          appMakerId: mockAppMakerId,
-          namaHadiah: 'Payung Lipat',
-          deskripsi: null,
-          poinDibutuhkan: 150,
-          stok: 20,
-          foto: null,
-        },
-      });
       expect(result.foto).toBeNull();
     });
   });
 
   describe('findOne', () => {
-    it('should return the gift if found under tenant', async () => {
+    it('should return the gift if found', async () => {
       prismaMock.hadiah.findFirst.mockResolvedValue(mockHadiah);
 
-      const result = await service.findOne(mockAppMakerId, mockHadiahId);
+      const result = await service.findOne(mockHadiahId);
 
       expect(prismaMock.hadiah.findFirst).toHaveBeenCalledWith({
-        where: { id: mockHadiahId, appMakerId: mockAppMakerId },
+        where: { id: mockHadiahId },
       });
       expect(result.id).toBe(mockHadiahId);
     });
 
-    it('should throw NotFoundException if gift does not exist or belongs to another tenant', async () => {
+    it('should throw NotFoundException if gift does not exist', async () => {
       prismaMock.hadiah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.findOne(mockAppMakerId, 'other-id'),
+        service.findOne('other-id'),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -175,20 +155,11 @@ describe('HadiahService', () => {
       };
 
       const result = await service.update(
-        mockAppMakerId,
         mockHadiahId,
         updateDto,
         'https://supabase.co/new-photo.jpg',
       );
 
-      expect(prismaMock.hadiah.update).toHaveBeenCalledWith({
-        where: { id: mockHadiahId },
-        data: {
-          namaHadiah: 'Tumbler Custom',
-          poinDibutuhkan: 300,
-          foto: 'https://supabase.co/new-photo.jpg',
-        },
-      });
       expect(storageMock.deleteFile).toHaveBeenCalledWith(mockHadiah.foto);
       expect(result.namaHadiah).toBe('Tumbler Custom');
     });
@@ -197,7 +168,7 @@ describe('HadiahService', () => {
       prismaMock.hadiah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update(mockAppMakerId, 'non-existent', { namaHadiah: 'New' }),
+        service.update('non-existent', { namaHadiah: 'New' }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -207,7 +178,7 @@ describe('HadiahService', () => {
       prismaMock.hadiah.findFirst.mockResolvedValue(mockHadiah);
       prismaMock.hadiah.delete.mockResolvedValue(mockHadiah);
 
-      const result = await service.remove(mockAppMakerId, mockHadiahId);
+      const result = await service.remove(mockHadiahId);
 
       expect(prismaMock.hadiah.delete).toHaveBeenCalledWith({
         where: { id: mockHadiahId },
@@ -220,7 +191,7 @@ describe('HadiahService', () => {
       prismaMock.hadiah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove(mockAppMakerId, 'non-existent'),
+        service.remove('non-existent'),
       ).rejects.toThrow(NotFoundException);
     });
   });

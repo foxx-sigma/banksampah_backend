@@ -7,10 +7,8 @@ describe('SeedService', () => {
   let service: SeedService;
   let prismaMock: any;
 
-  const mockAppMakerId = 'tenant-uuid-1';
-
   beforeEach(async () => {
-    const txMock = {
+    prismaMock = {
       detailSetor: {
         deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
@@ -61,10 +59,6 @@ describe('SeedService', () => {
       },
     };
 
-    prismaMock = {
-      $transaction: vi.fn().mockImplementation((cb: any) => cb(txMock)),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SeedService,
@@ -76,9 +70,8 @@ describe('SeedService', () => {
   });
 
   it('should generate dummy seed data and return credentials summary', async () => {
-    const result = await service.seedTenantData(mockAppMakerId);
+    const result = await service.seedData();
 
-    expect(prismaMock.$transaction).toHaveBeenCalled();
     expect(result.kredensial).toBeDefined();
     expect(result.kredensial.admin.username).toBe('admin_bank');
     expect(result.kredensial.admin.password).toBe('password123');

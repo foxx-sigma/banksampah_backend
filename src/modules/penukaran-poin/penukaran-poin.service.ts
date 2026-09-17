@@ -16,7 +16,6 @@ export class PenukaranPoinService {
   constructor(private readonly prisma: PrismaService) {}
 
   async tukarPoin(
-    appMakerId: string,
     userId: string,
     dto: CreatePenukaranPoinDto,
   ) {
@@ -24,12 +23,12 @@ export class PenukaranPoinService {
       where: { userId },
     });
 
-    if (!nasabah || nasabah.appMakerId !== appMakerId) {
+    if (!nasabah) {
       throw new NotFoundException('Data profil nasabah tidak ditemukan');
     }
 
     const hadiah = await this.prisma.hadiah.findFirst({
-      where: { id: dto.hadiahId, appMakerId },
+      where: { id: dto.hadiahId },
     });
 
     if (!hadiah) {
@@ -57,72 +56,70 @@ export class PenukaranPoinService {
       .toUpperCase();
     const kodePenukaran = `TKR-${year}${month}-${randomSuffix}`;
 
-    return this.prisma.$transaction(async (tx) => {
-      const updatedHadiah = await tx.hadiah.updateMany({
-        where: {
-          id: hadiah.id,
-          appMakerId,
-          stok: { gte: 1 },
-        },
-        data: {
-          stok: { decrement: 1 },
-        },
-      });
-
-      if (updatedHadiah.count === 0) {
-        throw new BadRequestException(
-          'Stok hadiah tidak mencukupi atau telah habis',
-        );
-      }
-
-      const updatedNasabah = await tx.nasabah.updateMany({
-        where: {
-          id: nasabah.id,
-          appMakerId,
-          saldoPoin: { gte: hadiah.poinDibutuhkan },
-        },
-        data: {
-          saldoPoin: { decrement: hadiah.poinDibutuhkan },
-        },
-      });
-
-      if (updatedNasabah.count === 0) {
-        throw new BadRequestException(
-          'Saldo poin tidak mencukupi untuk menukar hadiah ini',
-        );
-      }
-
-      const penukaran = await tx.penukaranPoin.create({
-        data: {
-          kodePenukaran,
-          appMakerId,
-          nasabahId: nasabah.id,
-          hadiahId: hadiah.id,
-          poinDigunakan: hadiah.poinDibutuhkan,
-          status: 'diproses',
-          catatan: dto.catatan?.trim() || null,
-          tanggal: now,
-        },
-        include: {
-          nasabah: {
-            select: {
-              id: true,
-              namaNasabah: true,
-              alamat: true,
-              telp: true,
-              saldoPoin: true,
-            },
-          },
-          hadiah: true,
-        },
-      });
-
-      return penukaran;
+    const updatedHadiah = await this.prisma.hadiah.updateMany({
+      where: {
+        id: hadiah.id,
+        stok: { gte: 1 },
+      },
+      data: {
+        stok: { decrement: 1 },
+      },
     });
+
+    if (updatedHadiah.count === 0) {
+      throw new BadRequestException(
+        'Stok hadiah tidak mencukupi atau telah habis',
+      );
+    }
+
+    const updatedNasabah = await this.prisma.nasabah.updateMany({
+      where: {
+        id: nasabah.id,
+        saldoPoin: { gte: hadiah.poinDibutuhkan },
+      },
+      data: {
+        saldoPoin: { decrement: hadiah.poinDibutuhkan },
+      },
+    });
+
+    if (updatedNasabah.count === 0) {
+      await this.prisma.hadiah.update({
+        where: { id: hadiah.id },
+        data: { stok: { increment: 1 } },
+      });
+      throw new BadRequestException(
+        'Saldo poin tidak mencukupi untuk menukar hadiah ini',
+      );
+    }
+
+    const penukaran = await this.prisma.penukaranPoin.create({
+      data: {
+        kodePenukaran,
+        nasabahId: nasabah.id,
+        hadiahId: hadiah.id,
+        poinDigunakan: hadiah.poinDibutuhkan,
+        status: 'diproses',
+        catatan: dto.catatan?.trim() || null,
+        tanggal: now,
+      },
+      include: {
+        nasabah: {
+          select: {
+            id: true,
+            namaNasabah: true,
+            alamat: true,
+            telp: true,
+            saldoPoin: true,
+          },
+        },
+        hadiah: true,
+      },
+    });
+
+    return penukaran;
   }
 
   async findMyPenukaran(
-    appMakerId: string,
     userId: string,
     query: QueryPenukaranPoinDto,
   ) {
@@ -130,12 +127,11 @@ export class PenukaranPoinService {
       where: { userId },
     });
 
-    if (!nasabah || nasabah.appMakerId !== appMakerId) {
+    if (!nasabah) {
       throw new NotFoundException('Data profil nasabah tidak ditemukan');
     }
 
     const where: any = {
-      appMakerId,
       nasabahId: nasabah.id,
     };
 
@@ -162,8 +158,8 @@ export class PenukaranPoinService {
     });
   }
 
-  async findAllAdmin(appMakerId: string, query: QueryPenukaranPoinDto) {
-    const where: any = { appMakerId };
+  async findAllAdmin(query: QueryPenukaranPoinDto) {
+    const where: any = {};
 
     if (query.status) {
       where.status = query.status;
@@ -198,12 +194,11 @@ export class PenukaranPoinService {
   }
 
   async updateStatus(
-    appMakerId: string,
     id: string,
     dto: UpdateStatusPenukaranDto,
   ) {
     const existing = await this.prisma.penukaranPoin.findFirst({
-      where: { id, appMakerId },
+      where: { id },
     });
 
     if (!existing) {
@@ -233,12 +228,11 @@ export class PenukaranPoinService {
   }
 
   async getNota(
-    appMakerId: string,
     id: string,
     user: { role: string; userId?: string; id?: string; sub?: string },
   ) {
     const penukaran = await this.prisma.penukaranPoin.findFirst({
-      where: { id, appMakerId },
+      where: { id },
       include: {
         nasabah: {
           select: {
