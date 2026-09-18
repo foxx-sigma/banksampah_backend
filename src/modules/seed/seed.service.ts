@@ -26,120 +26,119 @@ export class SeedService {
     await this.prisma.adminBank.deleteMany({});
     await this.prisma.user.deleteMany({});
 
-    const adminUser = await this.prisma.user.create({
-      data: {
-        username: 'admin_bank',
-        password: hashedPassword,
-        role: Role.ADMIN,
-        adminBank: {
-          create: {
-            namaUnit: 'Bank Sampah Unit Berkah',
-            namaPengelola: 'Budi Santoso',
-            telp: '081234567890',
+    const [adminUser, nasabahUser1, nasabahUser2] = await Promise.all([
+      this.prisma.user.create({
+        data: {
+          username: 'admin_bank',
+          password: hashedPassword,
+          role: Role.ADMIN,
+          adminBank: {
+            create: {
+              namaUnit: 'Bank Sampah Unit Berkah',
+              namaPengelola: 'Budi Santoso',
+              telp: '081234567890',
+            },
           },
         },
-      },
-      include: { adminBank: true },
-    });
-
-    const nasabahUser1 = await this.prisma.user.create({
-      data: {
-        username: 'nasabah1',
-        password: hashedPassword,
-        role: Role.NASABAH,
-        nasabah: {
-          create: {
-            namaNasabah: 'Andi Pratama',
-            alamat: 'Jl. Merdeka No. 10',
-            telp: '081298765432',
-            tanggalLahir: new Date('1995-05-15'),
-            saldoPoin: 750,
+        include: { adminBank: true },
+      }),
+      this.prisma.user.create({
+        data: {
+          username: 'nasabah1',
+          password: hashedPassword,
+          role: Role.NASABAH,
+          nasabah: {
+            create: {
+              namaNasabah: 'Andi Pratama',
+              alamat: 'Jl. Merdeka No. 10',
+              telp: '081298765432',
+              tanggalLahir: new Date('1995-05-15'),
+              saldoPoin: 750,
+            },
           },
         },
-      },
-      include: { nasabah: true },
-    });
-
-    const nasabahUser2 = await this.prisma.user.create({
-      data: {
-        username: 'nasabah2',
-        password: hashedPassword,
-        role: Role.NASABAH,
-        nasabah: {
-          create: {
-            namaNasabah: 'Siti Rahma',
-            alamat: 'Jl. Mawar No. 5',
-            telp: '081345678901',
-            tanggalLahir: new Date('1998-08-20'),
-            saldoPoin: 1500,
+        include: { nasabah: true },
+      }),
+      this.prisma.user.create({
+        data: {
+          username: 'nasabah2',
+          password: hashedPassword,
+          role: Role.NASABAH,
+          nasabah: {
+            create: {
+              namaNasabah: 'Siti Rahma',
+              alamat: 'Jl. Mawar No. 5',
+              telp: '081345678901',
+              tanggalLahir: new Date('1998-08-20'),
+              saldoPoin: 1500,
+            },
           },
         },
-      },
-      include: { nasabah: true },
-    });
+        include: { nasabah: true },
+      }),
+    ]);
 
-    const katPlastik = await this.prisma.kategoriSampah.create({
-      data: {
-        namaKategori: 'Botol Plastik PET',
-        hargaPerKg: 4000,
-        poinPerKg: 200,
-        jenis: JenisSampah.plastik,
-      },
-    });
+    const [katPlastik] = await Promise.all([
+      this.prisma.kategoriSampah.create({
+        data: {
+          namaKategori: 'Botol Plastik PET',
+          hargaPerKg: 4000,
+          poinPerKg: 200,
+          jenis: JenisSampah.plastik,
+        },
+      }),
+      this.prisma.kategoriSampah.create({
+        data: {
+          namaKategori: 'Kardus Bekas',
+          hargaPerKg: 2500,
+          poinPerKg: 125,
+          jenis: JenisSampah.kertas,
+        },
+      }),
+      this.prisma.kategoriSampah.create({
+        data: {
+          namaKategori: 'Kaleng Aluminium',
+          hargaPerKg: 12000,
+          poinPerKg: 600,
+          jenis: JenisSampah.logam,
+        },
+      }),
+      this.prisma.kategoriSampah.create({
+        data: {
+          namaKategori: 'Botol Kaca Bening',
+          hargaPerKg: 1500,
+          poinPerKg: 75,
+          jenis: JenisSampah.kaca,
+        },
+      }),
+    ]);
 
-    await this.prisma.kategoriSampah.create({
-      data: {
-        namaKategori: 'Kardus Bekas',
-        hargaPerKg: 2500,
-        poinPerKg: 125,
-        jenis: JenisSampah.kertas,
-      },
-    });
-
-    await this.prisma.kategoriSampah.create({
-      data: {
-        namaKategori: 'Kaleng Aluminium',
-        hargaPerKg: 12000,
-        poinPerKg: 600,
-        jenis: JenisSampah.logam,
-      },
-    });
-
-    await this.prisma.kategoriSampah.create({
-      data: {
-        namaKategori: 'Botol Kaca Bening',
-        hargaPerKg: 1500,
-        poinPerKg: 75,
-        jenis: JenisSampah.kaca,
-      },
-    });
-
-    const hadiah1 = await this.prisma.hadiah.create({
-      data: {
-        namaHadiah: 'Tumbler Stainless Eco',
-        deskripsi: 'Tumbler ramah lingkungan 500ml',
-        poinDibutuhkan: 500,
-        stok: 20,
-      },
-    });
-
-    await this.prisma.hadiah.create({
-      data: {
-        namaHadiah: 'Voucher Belanja Rp 50.000',
-        deskripsi: 'Voucher belanja minimarket',
-        poinDibutuhkan: 1000,
-        stok: 10,
-      },
-    });
-
-    await this.prisma.hadiah.create({
-      data: {
-        namaHadiah: 'Payung Lipat Eksklusif',
-        deskripsi: 'Payung lipat anti angin',
-        poinDibutuhkan: 350,
-        stok: 15,
-      },
-    });
+    const [hadiah1] = await Promise.all([
+      this.prisma.hadiah.create({
+        data: {
+          namaHadiah: 'Tumbler Stainless Eco',
+          deskripsi: 'Tumbler ramah lingkungan 500ml',
+          poinDibutuhkan: 500,
+          stok: 20,
+        },
+      }),
+      this.prisma.hadiah.create({
+        data: {
+          namaHadiah: 'Voucher Belanja Rp 50.000',
+          deskripsi: 'Voucher belanja minimarket',
+          poinDibutuhkan: 1000,
+          stok: 10,
+        },
+      }),
+      this.prisma.hadiah.create({
+        data: {
+          namaHadiah: 'Payung Lipat Eksklusif',
+          deskripsi: 'Payung lipat anti angin',
+          poinDibutuhkan: 350,
+          stok: 15,
+        },
+      }),
+    ]);
 
     const now = new Date();
     const year = now.getFullYear();

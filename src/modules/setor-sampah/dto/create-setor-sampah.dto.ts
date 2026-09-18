@@ -5,7 +5,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 import { ItemSetorDto } from './item-setor.dto.js';
@@ -39,6 +39,18 @@ export class CreateSetorSampahDto {
   @ApiProperty({
     description: 'Daftar item sampah yang disetorkan (minimal 1)',
     type: [ItemSetorDto],
+  })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : value;
+      } catch {
+        return value;
+      }
+    }
+    return value;
   })
   @IsArray({ message: 'items harus berupa array' })
   @ArrayMinSize(1, { message: 'items minimal berisi 1 item penyetoran' })
