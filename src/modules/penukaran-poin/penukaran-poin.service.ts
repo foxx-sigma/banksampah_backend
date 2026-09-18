@@ -56,67 +56,63 @@ export class PenukaranPoinService {
       .toUpperCase();
     const kodePenukaran = `TKR-${year}${month}-${randomSuffix}`;
 
-    const updatedHadiah = await this.prisma.hadiah.updateMany({
-      where: {
-        id: hadiah.id,
-        stok: { gte: 1 },
-      },
-      data: {
-        stok: { decrement: 1 },
-      },
-    });
-
-    if (updatedHadiah.count === 0) {
-      throw new BadRequestException(
-        'Stok hadiah tidak mencukupi atau telah habis',
-      );
-    }
-
-    const updatedNasabah = await this.prisma.nasabah.updateMany({
-      where: {
-        id: nasabah.id,
-        saldoPoin: { gte: hadiah.poinDibutuhkan },
-      },
-      data: {
-        saldoPoin: { decrement: hadiah.poinDibutuhkan },
-      },
-    });
-
-    if (updatedNasabah.count === 0) {
-      await this.prisma.hadiah.update({
-        where: { id: hadiah.id },
-        data: { stok: { increment: 1 } },
-      });
-      throw new BadRequestException(
-        'Saldo poin tidak mencukupi untuk menukar hadiah ini',
-      );
-    }
-
-    const penukaran = await this.prisma.penukaranPoin.create({
-      data: {
-        kodePenukaran,
-        nasabahId: nasabah.id,
-        hadiahId: hadiah.id,
-        poinDigunakan: hadiah.poinDibutuhkan,
-        status: 'diproses',
-        catatan: dto.catatan?.trim() || null,
-        tanggal: now,
-      },
-      include: {
-        nasabah: {
-          select: {
-            id: true,
-            namaNasabah: true,
-            alamat: true,
-            telp: true,
-            saldoPoin: true,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const updatedHadiah = await tx.hadiah.updateMany({
+        where: {
+          id: hadiah.id,
+          stok: { gte: 1 },
         },
-        hadiah: true,
-      },
-    });
+        data: {
+          stok: { decrement: 1 },
+        },
+      });
 
-    return penukaran;
+      if (updatedHadiah.count === 0) {
+        throw new BadRequestException(
+          'Stok hadiah tidak mencukupi atau telah habis',
+        );
+      }
+
+      const updatedNasabah = await tx.nasabah.updateMany({
+        where: {
+          id: nasabah.id,
+          saldoPoin: { gte: hadiah.poinDibutuhkan },
+        },
+        data: {
+          saldoPoin: { decrement: hadiah.poinDibutuhkan },
+        },
+      });
+
+      if (updatedNasabah.count === 0) {
+        throw new BadRequestException(
+          'Saldo poin tidak mencukupi untuk menukar hadiah ini',
+        );
+      }
+
+      return tx.penukaranPoin.create({
+        data: {
+          kodePenukaran,
+          nasabahId: nasabah.id,
+          hadiahId: hadiah.id,
+          poinDigunakan: hadiah.poinDibutuhkan,
+          status: 'diproses',
+          catatan: dto.catatan?.trim() || null,
+          tanggal: now,
+        },
+        include: {
+          nasabah: {
+            select: {
+              id: true,
+              namaNasabah: true,
+              alamat: true,
+              telp: true,
+              saldoPoin: true,
+            },
+          },
+          hadiah: true,
+        },
+      });
+    });
   }
 
   async findMyPenukaran(

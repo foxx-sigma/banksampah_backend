@@ -44,6 +44,7 @@ describe('PenukaranPoinService', () => {
 
   beforeEach(async () => {
     prismaMock = {
+      $transaction: vi.fn(async (cb) => typeof cb === 'function' ? cb(prismaMock) : Promise.all(cb)),
       nasabah: {
         findUnique: vi.fn(),
         update: vi.fn(),

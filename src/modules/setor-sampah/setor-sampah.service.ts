@@ -55,8 +55,7 @@ export class SetorSampahService {
       });
     }
 
-    const tanggalSetor = dto.tanggal ? new Date(dto.tanggal) : new Date();
-    const now = isNaN(tanggalSetor.getTime()) ? new Date() : tanggalSetor;
+    const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const randomSuffix = randomUUID().replace(/-/g, '').substring(0, 4).toUpperCase();
@@ -281,54 +280,64 @@ export class SetorSampahService {
         ? totalPoinReal
         : existing.estimasiTotalPoin;
 
-    for (const du of detailUpdates) {
-      await this.prisma.detailSetor.update({
-        where: { id: du.id },
-        data: {
-          beratKgReal: du.beratKgReal,
-          subtotalPoinReal: du.subtotalPoinReal,
-        },
-      });
-    }
+    return this.prisma.$transaction(async (tx) => {
+      for (const du of detailUpdates) {
+        await tx.detailSetor.update({
+          where: { id: du.id },
+          data: {
+            beratKgReal: du.beratKgReal,
+            subtotalPoinReal: du.subtotalPoinReal,
+          },
+        });
+      }
 
-    if (dto.status === 'selesai' && !wasAlreadySelesai && pointsToAdd > 0) {
-      await this.prisma.nasabah.update({
-        where: { id: existing.nasabahId },
-        data: {
-          saldoPoin: { increment: pointsToAdd },
-        },
-      });
-    }
+      if (dto.status === 'selesai' && !wasAlreadySelesai && pointsToAdd > 0) {
+        const setoranCheck = await tx.setorSampah.findFirst({
+          where: { id, status: { not: 'selesai' } },
+        });
 
-    const updated = await this.prisma.setorSampah.update({
-      where: { id },
-      data: {
-        status: dto.status,
-        catatanAdmin:
-          dto.catatanAdmin !== undefined
-            ? dto.catatanAdmin.trim()
-            : existing.catatanAdmin,
-        totalBeratKgReal,
-        totalPoinReal,
-      },
-      include: {
-        nasabah: {
-          select: {
-            id: true,
-            namaNasabah: true,
-            alamat: true,
-            telp: true,
-            saldoPoin: true,
+        if (!setoranCheck) {
+          throw new BadRequestException(
+            'Transaksi sudah diverifikasi oleh proses lain',
+          );
+        }
+
+        await tx.nasabah.update({
+          where: { id: existing.nasabahId },
+          data: {
+            saldoPoin: { increment: pointsToAdd },
+          },
+        });
+      }
+
+      return tx.setorSampah.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          catatanAdmin:
+            dto.catatanAdmin !== undefined
+              ? dto.catatanAdmin.trim()
+              : existing.catatanAdmin,
+          totalBeratKgReal,
+          totalPoinReal,
+        },
+        include: {
+          nasabah: {
+            select: {
+              id: true,
+              namaNasabah: true,
+              alamat: true,
+              telp: true,
+              saldoPoin: true,
+            },
+          },
+          detailSetor: {
+            include: {
+              kategoriSampah: true,
+            },
           },
         },
-        detailSetor: {
-          include: {
-            kategoriSampah: true,
-          },
-        },
-      },
+      });
     });
-
-    return updated;
   }
 }

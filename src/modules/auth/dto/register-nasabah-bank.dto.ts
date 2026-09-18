@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
@@ -10,6 +10,7 @@ export class RegisterNasabahBankDto {
   @SanitizeText()
   @IsString({ message: 'Username harus berupa string' })
   @IsNotEmpty({ message: 'Username tidak boleh kosong' })
+  @MaxLength(100, { message: 'Username maksimal 100 karakter' })
   username: string;
 
   @ApiProperty({
@@ -20,6 +21,7 @@ export class RegisterNasabahBankDto {
   @IsString({ message: 'Password harus berupa string' })
   @IsNotEmpty({ message: 'Password tidak boleh kosong' })
   @MinLength(6, { message: 'Password minimal 6 karakter' })
+  @MaxLength(72, { message: 'Password maksimal 72 karakter' })
   password: string;
 
   @ApiProperty({

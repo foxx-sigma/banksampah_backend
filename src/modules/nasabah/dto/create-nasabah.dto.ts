@@ -69,22 +69,4 @@ export class CreateNasabahDto {
   })
   @IsOptional()
   foto?: any;
-
-  @ApiPropertyOptional({
-    description: 'Alias nama lengkap nasabah',
-    example: 'Budi Santoso',
-  })
-  @IsOptional()
-  @SanitizeText()
-  @IsString()
-  namaLengkap?: string;
-
-  @ApiPropertyOptional({
-    description: 'Alias nomor telepon nasabah',
-    example: '081298765432',
-  })
-  @IsOptional()
-  @SanitizeText()
-  @IsString()
-  noTelepon?: string;
 }

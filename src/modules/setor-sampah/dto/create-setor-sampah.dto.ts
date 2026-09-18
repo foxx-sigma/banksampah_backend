@@ -5,20 +5,12 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 import { ItemSetorDto } from './item-setor.dto.js';
 
 export class CreateSetorSampahDto {
-  @ApiPropertyOptional({
-    description: 'Tanggal penyetoran sampah (format ISO 8601)',
-    example: '2026-09-05T08:30:00.000Z',
-  })
-  @IsOptional()
-  @IsString({ message: 'tanggal harus berupa string tanggal ISO 8601' })
-  tanggal?: string;
-
   @ApiPropertyOptional({
     description: 'Catatan tambahan dari nasabah',
     example: 'Kardus sudah diikat rapi dan botol sudah dibersihkan',
@@ -41,16 +33,22 @@ export class CreateSetorSampahDto {
     type: [ItemSetorDto],
   })
   @Transform(({ value }) => {
-    if (Array.isArray(value)) return value;
+    let parsed = value;
     if (typeof value === 'string') {
       try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : value;
+        parsed = JSON.parse(value);
       } catch {
         return value;
       }
     }
-    return value;
+    if (Array.isArray(parsed)) {
+      return parsed.map((item: any) =>
+        item instanceof ItemSetorDto
+          ? item
+          : plainToInstance(ItemSetorDto, item),
+      );
+    }
+    return parsed;
   })
   @IsArray({ message: 'items harus berupa array' })
   @ArrayMinSize(1, { message: 'items minimal berisi 1 item penyetoran' })

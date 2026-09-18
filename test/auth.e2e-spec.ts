@@ -95,16 +95,16 @@ describe('AuthController (e2e)', () => {
         id: 'new-user-1',
         username: 'budisantoso',
         role: 'NASABAH',
-      });
-      prismaMock.nasabah.create.mockResolvedValue({
-        id: 'new-nasabah-1',
-        namaNasabah: 'Budi Santoso',
-        alamat: 'Jl. Merdeka No. 1',
-        telp: '08123456789',
-        foto: null,
-        saldoPoin: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        nasabah: {
+          id: 'new-nasabah-1',
+          namaNasabah: 'Budi Santoso',
+          alamat: 'Jl. Merdeka No. 1',
+          telp: '08123456789',
+          foto: null,
+          saldoPoin: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       });
 
       const res = await request(app.getHttpServer())
@@ -129,21 +129,21 @@ describe('AuthController (e2e)', () => {
 
     it('should register a new nasabah with photo upload (multipart/form-data) (201)', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
-      prismaMock.user.create.mockResolvedValue({
-        id: 'new-user-2',
-        username: 'sitirahma',
-        role: 'NASABAH',
-      });
-      prismaMock.nasabah.create.mockImplementation((args: any) =>
+      prismaMock.user.create.mockImplementation((args: any) =>
         Promise.resolve({
-          id: 'new-nasabah-2',
-          namaNasabah: args.data.namaNasabah,
-          alamat: args.data.alamat,
-          telp: args.data.telp,
-          foto: args.data.foto,
-          saldoPoin: 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          id: 'new-user-2',
+          username: 'sitirahma',
+          role: 'NASABAH',
+          nasabah: {
+            id: 'new-nasabah-2',
+            namaNasabah: args.data?.nasabah?.create?.namaNasabah,
+            alamat: args.data?.nasabah?.create?.alamat,
+            telp: args.data?.nasabah?.create?.telp,
+            foto: args.data?.nasabah?.create?.foto,
+            saldoPoin: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         }),
       );
 
@@ -238,14 +238,14 @@ describe('AuthController (e2e)', () => {
         id: 'admin-user-1',
         username: 'adminutama',
         role: 'ADMIN',
-      });
-      prismaMock.adminBank.create.mockResolvedValue({
-        id: 'admin-unit-1',
-        namaUnit: 'Bank Sampah Asri',
-        namaPengelola: 'Pak Hendra',
-        telp: '08122334455',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        adminBank: {
+          id: 'admin-unit-1',
+          namaUnit: 'Bank Sampah Asri',
+          namaPengelola: 'Pak Hendra',
+          telp: '08122334455',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       });
 
       const res = await request(app.getHttpServer())

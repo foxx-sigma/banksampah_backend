@@ -59,8 +59,8 @@ export class NasabahService {
       }
     }
 
-    const nama = (dto.namaNasabah || dto.namaLengkap || '').trim();
-    const telp = (dto.telp || dto.noTelepon || '').trim();
+    const nama = (dto.namaNasabah || '').trim();
+    const telp = (dto.telp || '').trim();
 
     const user = await this.prisma.user.create({
       data: {
@@ -135,13 +135,11 @@ export class NasabahService {
     }
 
     const updateData: any = {};
-    const nama = dto.namaNasabah || dto.namaLengkap;
-    if (nama !== undefined) {
-      updateData.namaNasabah = nama.trim();
+    if (dto.namaNasabah !== undefined) {
+      updateData.namaNasabah = dto.namaNasabah.trim();
     }
-    const telp = dto.telp || dto.noTelepon;
-    if (telp !== undefined) {
-      updateData.telp = telp.trim();
+    if (dto.telp !== undefined) {
+      updateData.telp = dto.telp.trim();
     }
     if (dto.alamat !== undefined) {
       updateData.alamat = dto.alamat.trim();

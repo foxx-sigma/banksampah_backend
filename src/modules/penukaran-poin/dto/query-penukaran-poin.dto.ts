@@ -8,7 +8,7 @@ export class QueryPenukaranPoinDto {
     example: '2026-09',
   })
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}$/, {
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, {
     message: 'Format bulan harus berupa YYYY-MM (contoh: 2026-09)',
   })
   bulan?: string;

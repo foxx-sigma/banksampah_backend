@@ -65,6 +65,7 @@ describe('SetorSampahService', () => {
 
   beforeEach(async () => {
     prismaMock = {
+      $transaction: vi.fn(async (cb) => typeof cb === 'function' ? cb(prismaMock) : Promise.all(cb)),
       nasabah: {
         findUnique: vi.fn(),
         update: vi.fn(),
@@ -104,7 +105,6 @@ describe('SetorSampahService', () => {
       prismaMock.setorSampah.create.mockResolvedValue(mockSetor);
 
       const result = await service.createPengajuan(mockUserId, {
-        tanggal: '2026-09-05',
         catatan: 'Depan gerbang',
         items: [
           { kategoriSampahId: mockKategoriId1, beratKg: 2 },

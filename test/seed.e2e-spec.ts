@@ -62,6 +62,7 @@ describe('SeedController (e2e)', () => {
     };
 
     prismaMock = {
+      ...txMock,
       $transaction: vi.fn().mockImplementation((cb: any) => cb(txMock)),
     };
 

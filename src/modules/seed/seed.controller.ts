@@ -9,9 +9,11 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { SeedService } from './seed.service.js';
 import {
+  Roles,
   Public,
   ResponseMessage,
 } from '../../common/index.js';

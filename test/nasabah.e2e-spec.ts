@@ -158,23 +158,23 @@ describe('NasabahController (e2e)', () => {
         id: 'new-user-id',
         username: 'sitirahma',
         role: 'NASABAH',
-      });
-      prismaMock.nasabah.create.mockResolvedValue({
-        id: 'new-nasabah-id',
-        userId: 'new-user-id',
-        namaNasabah: 'Siti Rahma',
-        alamat: 'Jl. Anggrek 12',
-        telp: '081234567890',
-        foto: 'https://supabase.co/foto.jpg',
-        saldoPoin: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        user: {
-          id: 'new-user-id',
-          username: 'sitirahma',
-          role: 'NASABAH',
+        nasabah: {
+          id: 'new-nasabah-id',
+          userId: 'new-user-id',
+          namaNasabah: 'Siti Rahma',
+          alamat: 'Jl. Anggrek 12',
+          telp: '081234567890',
+          foto: 'https://supabase.co/foto.jpg',
+          saldoPoin: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
+          user: {
+            id: 'new-user-id',
+            username: 'sitirahma',
+            role: 'NASABAH',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         },
       });
 
@@ -272,8 +272,8 @@ describe('NasabahController (e2e)', () => {
         .put(`/api/v1/admin/nasabah/${mockNasabah.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          namaLengkap: 'Budi Updated',
-          noTelepon: '08999888777',
+          namaNasabah: 'Budi Updated',
+          telp: '08999888777',
           alamat: 'Jl. Melati Baru',
         })
         .expect(200);
@@ -291,7 +291,7 @@ describe('NasabahController (e2e)', () => {
         .put('/api/v1/admin/nasabah/foreign-tenant-id')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          namaLengkap: 'Hacked Name',
+          namaNasabah: 'Hacked Name',
         })
         .expect(404);
 

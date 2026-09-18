@@ -163,7 +163,7 @@ describe('NasabahService', () => {
       prismaMock.nasabah.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update('other-id', { namaLengkap: 'Baru' }),
+        service.update('other-id', { namaNasabah: 'Baru' }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -178,8 +178,8 @@ describe('NasabahService', () => {
       const result = await service.update(
         mockNasabahId,
         {
-          namaLengkap: 'Budi Santoso Update',
-          noTelepon: '08111222333',
+          namaNasabah: 'Budi Santoso Update',
+          telp: '08111222333',
           alamat: 'Alamat Baru',
           tanggalLahir: '1995-06-01',
         },

@@ -38,11 +38,6 @@ if (!existsSync(nasabahUploadDir)) {
   mkdirSync(nasabahUploadDir, { recursive: true });
 }
 
-const ALLOWED_MIME_EXT_MAP: Record<string, string[]> = {
-  'image/jpeg': ['.jpg', '.jpeg'],
-  'image/png': ['.png'],
-  'image/webp': ['.webp'],
-};
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 const multerNasabahStorage = diskStorage({

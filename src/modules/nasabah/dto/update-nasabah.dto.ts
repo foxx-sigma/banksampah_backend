@@ -4,15 +4,6 @@ import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class UpdateNasabahDto {
   @ApiPropertyOptional({
-    description: 'Nama lengkap nasabah',
-    example: 'Budi Santoso',
-  })
-  @IsOptional()
-  @SanitizeText()
-  @IsString({ message: 'Nama lengkap harus berupa string' })
-  namaLengkap?: string;
-
-  @ApiPropertyOptional({
     description: 'Nama nasabah',
     example: 'Budi Santoso',
   })
@@ -20,15 +11,6 @@ export class UpdateNasabahDto {
   @SanitizeText()
   @IsString({ message: 'Nama nasabah harus berupa string' })
   namaNasabah?: string;
-
-  @ApiPropertyOptional({
-    description: 'Nomor telepon nasabah',
-    example: '081298765432',
-  })
-  @IsOptional()
-  @SanitizeText()
-  @IsString({ message: 'Nomor telepon harus berupa string' })
-  noTelepon?: string;
 
   @ApiPropertyOptional({
     description: 'Nomor telepon nasabah',

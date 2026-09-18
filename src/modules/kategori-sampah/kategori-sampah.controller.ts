@@ -42,11 +42,6 @@ if (!existsSync(sampahUploadDir)) {
   mkdirSync(sampahUploadDir, { recursive: true });
 }
 
-const ALLOWED_MIME_EXT_MAP: Record<string, string[]> = {
-  'image/jpeg': ['.jpg', '.jpeg'],
-  'image/png': ['.png'],
-  'image/webp': ['.webp'],
-};
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 const multerSampahStorage = diskStorage({
