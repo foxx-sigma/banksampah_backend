@@ -1,5 +1,6 @@
 import {
   IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -34,7 +35,7 @@ export class CreateHadiahDto {
     minimum: 0,
   })
   @Type(() => Number)
-  @IsInt({ message: 'Poin dibutuhkan harus berupa angka bulat' })
+  @IsNumber({}, { message: 'Poin dibutuhkan harus berupa angka' })
   @Min(0, { message: 'Poin dibutuhkan minimal 0' })
   poinDibutuhkan: number;
 

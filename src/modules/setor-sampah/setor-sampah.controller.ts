@@ -210,8 +210,10 @@ export class SetorSampahController {
   async verify(
     @Param('id') id: string,
     @Body() dto: VerifySetorSampahDto,
+    @CurrentUser() user: any,
   ) {
-    return this.setorSampahService.verify(id, dto);
+    const adminUserId = user?.userId || user?.id || user?.sub;
+    return this.setorSampahService.verify(id, dto, adminUserId);
   }
 
   @Roles('NASABAH', 'ADMIN')

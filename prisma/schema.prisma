@@ -29,7 +29,7 @@ model Nasabah {
   telp          String
   tanggalLahir  DateTime?
   foto          String?
-  saldoPoin     Int             @default(0)
+  saldoPoin     Float           @default(0)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -47,7 +47,8 @@ model AdminBank {
   telp          String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  setorSampah   SetorSampah[]
 
   @@map("admin_bank")
 }
@@ -55,8 +56,8 @@ model AdminBank {
 model KategoriSampah {
   id           String        @id @default(uuid())
   namaKategori String
-  hargaPerKg   Int
-  poinPerKg    Int
+  hargaPerKg   Float
+  poinPerKg    Float
   jenis        JenisSampah
   foto         String?
   createdAt    DateTime      @default(now())
@@ -73,8 +74,9 @@ model SetorSampah {
   tanggal           DateTime      @default(now())
   totalBeratKg      Float         @default(0)
   totalBeratKgReal  Float?
-  estimasiTotalPoin Int           @default(0)
-  totalPoinReal     Int?
+  estimasiTotalPoin Float         @default(0)
+  totalPoinReal     Float?
+  idAdmin           String?
   status            StatusSetor   @default(menunggu_konfirmasi)
   catatan           String?
   catatanAdmin      String?
@@ -83,6 +85,7 @@ model SetorSampah {
   kodeSetor         String?
   detailSetor       DetailSetor[]
   nasabah           Nasabah       @relation(fields: [nasabahId], references: [id], onDelete: Cascade)
+  adminBank         AdminBank?    @relation(fields: [idAdmin], references: [id])
 
   @@map("setor_sampah")
 }
@@ -93,9 +96,9 @@ model DetailSetor {
   kategoriSampahId String
   beratKg          Float
   beratKgReal      Float?
-  poinPerKg        Int
-  subtotalPoin     Int            @default(0)
-  subtotalPoinReal Int?
+  poinPerKg        Float
+  subtotalPoin     Float          @default(0)
+  subtotalPoinReal Float?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   kategoriSampah   KategoriSampah @relation(fields: [kategoriSampahId], references: [id])
@@ -108,7 +111,7 @@ model Hadiah {
   id             String          @id @default(uuid())
   namaHadiah     String
   deskripsi      String?
-  poinDibutuhkan Int
+  poinDibutuhkan Float
   stok           Int             @default(0)
   foto           String?
   createdAt      DateTime        @default(now())
@@ -122,7 +125,7 @@ model PenukaranPoin {
   id            String          @id @default(uuid())
   nasabahId     String
   hadiahId      String
-  poinDigunakan Int
+  poinDigunakan Float
   status        StatusPenukaran @default(diproses)
   tanggal       DateTime        @default(now())
   catatan       String?

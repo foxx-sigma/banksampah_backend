@@ -1,6 +1,6 @@
 import {
   IsEnum,
-  IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -29,7 +29,7 @@ export class UpdateKategoriSampahDto {
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Harga per kg harus berupa angka bulat' })
+  @IsNumber({}, { message: 'Harga per kg harus berupa angka' })
   @Min(0, { message: 'Harga per kg minimal 0' })
   hargaPerKg?: number;
 
@@ -40,7 +40,7 @@ export class UpdateKategoriSampahDto {
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Poin per kg harus berupa angka bulat' })
+  @IsNumber({}, { message: 'Poin per kg harus berupa angka' })
   @Min(0, { message: 'Poin per kg minimal 0' })
   poinPerKg?: number;
 

@@ -217,7 +217,17 @@ export class SetorSampahService {
     return setor;
   }
 
-  async verify(id: string, dto: VerifySetorSampahDto) {
+  async verify(id: string, dto: VerifySetorSampahDto, adminUserId?: string) {
+    // Lookup AdminBank id from the admin's userId (if provided)
+    let adminBankId: string | undefined;
+    if (adminUserId) {
+      const adminBank = await this.prisma.adminBank.findUnique({
+        where: { userId: adminUserId },
+        select: { id: true },
+      });
+      adminBankId = adminBank?.id ?? undefined;
+    }
+
     const existing = await this.prisma.setorSampah.findFirst({
       where: { id },
       include: {
@@ -280,7 +290,8 @@ export class SetorSampahService {
         ? totalPoinReal
         : existing.estimasiTotalPoin;
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(
+      async (tx) => {
       for (const du of detailUpdates) {
         await tx.detailSetor.update({
           where: { id: du.id },
@@ -320,6 +331,7 @@ export class SetorSampahService {
               : existing.catatanAdmin,
           totalBeratKgReal,
           totalPoinReal,
+          ...(adminBankId ? { idAdmin: adminBankId } : {}),
         },
         include: {
           nasabah: {
@@ -338,6 +350,9 @@ export class SetorSampahService {
           },
         },
       });
+    }, {
+      maxWait: 5000,
+      timeout: 15000,
     });
   }
 }
