@@ -56,8 +56,11 @@ export class SetorSampahService {
     }
 
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const tanggalSetor = dto.tanggal && !isNaN(new Date(dto.tanggal).getTime())
+      ? new Date(dto.tanggal)
+      : now;
+    const year = tanggalSetor.getFullYear();
+    const month = String(tanggalSetor.getMonth() + 1).padStart(2, '0');
     const randomSuffix = randomUUID().replace(/-/g, '').substring(0, 4).toUpperCase();
     const kodeSetor = `STR-${year}${month}-${randomSuffix}`;
 
@@ -65,7 +68,7 @@ export class SetorSampahService {
       data: {
         kodeSetor,
         nasabahId: nasabah.id,
-        tanggal: now,
+        tanggal: tanggalSetor,
         totalBeratKg: Number(totalBeratKg.toFixed(2)),
         estimasiTotalPoin,
         status: 'menunggu_konfirmasi',

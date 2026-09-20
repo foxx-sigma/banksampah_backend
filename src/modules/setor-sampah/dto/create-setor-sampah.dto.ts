@@ -21,6 +21,14 @@ export class CreateSetorSampahDto {
   catatan?: string;
 
   @ApiPropertyOptional({
+    description: 'Tanggal pengajuan setor sampah',
+    example: '2026-09-20T00:00:00.000Z',
+  })
+  @IsOptional()
+  @IsString({ message: 'tanggal harus berupa string format ISO/Date' })
+  tanggal?: string;
+
+  @ApiPropertyOptional({
     description: 'Foto bukti sampah yang disetorkan (JPG, PNG, WEBP maks 5MB)',
     type: 'string',
     format: 'binary',
