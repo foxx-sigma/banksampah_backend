@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
   UseInterceptors,
@@ -29,6 +30,7 @@ import { KategoriSampahService } from './kategori-sampah.service.js';
 import {
   CreateKategoriSampahDto,
   UpdateKategoriSampahDto,
+  QueryKategoriSampahDto,
 } from './dto/index.js';
 import {
   Public,
@@ -101,17 +103,17 @@ export class KategoriSampahController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Mendapatkan seluruh katalog kategori sampah',
+    summary: 'Mendapatkan katalog kategori sampah (dengan filter/pagination jika ada)',
     description:
-      'Menampilkan daftar jenis sampah, harga per kg, poin per kg, dan kelompok kategori.',
+      'Menampilkan daftar jenis sampah, harga per kg, poin per kg, dan kelompok kategori dengan filter opsional.',
   })
   @ApiResponse({
     status: 200,
     description: 'Daftar kategori sampah berhasil dimuat',
   })
   @ResponseMessage('Daftar kategori sampah berhasil dimuat')
-  async findAll() {
-    return this.kategoriSampahService.findAll();
+  async findAll(@Query() query: QueryKategoriSampahDto) {
+    return this.kategoriSampahService.findAll(query);
   }
 
   @Roles('ADMIN')

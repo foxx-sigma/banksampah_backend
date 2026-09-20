@@ -6,7 +6,7 @@ import {
 import bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma.service.js';
 import { StorageService } from '../../common/storage.service.js';
-import { CreateNasabahDto, UpdateNasabahDto } from './dto/index.js';
+import { CreateNasabahDto, UpdateNasabahDto, QueryNasabahDto } from './dto/index.js';
 
 @Injectable()
 export class NasabahService {
@@ -15,21 +15,72 @@ export class NasabahService {
     private readonly storageService: StorageService,
   ) {}
 
-  async findAll() {
-    return this.prisma.nasabah.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
+  async findAll(query?: QueryNasabahDto) {
+    if (
+      !query ||
+      (query.search === undefined &&
+        query.page === undefined &&
+        query.limit === undefined)
+    ) {
+      return this.prisma.nasabah.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              role: true,
+              createdAt: true,
+              updatedAt: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    const { search, page = 1, limit = 10 } = query;
+
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const where: any = search
+      ? {
+          OR: [
+            { namaNasabah: { contains: search, mode: 'insensitive' as const } },
+            { user: { username: { contains: search, mode: 'insensitive' as const } } },
+          ],
+        }
+      : {};
+
+    const [total, data] = await Promise.all([
+      this.prisma.nasabah.count({ where }),
+      this.prisma.nasabah.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              role: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    const meta = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return { data, meta };
   }
 
   async create(

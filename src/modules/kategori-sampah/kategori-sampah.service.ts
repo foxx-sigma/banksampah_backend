@@ -4,6 +4,7 @@ import { StorageService } from '../../common/storage.service.js';
 import {
   CreateKategoriSampahDto,
   UpdateKategoriSampahDto,
+  QueryKategoriSampahDto,
 } from './dto/index.js';
 
 @Injectable()
@@ -13,10 +14,45 @@ export class KategoriSampahService {
     private readonly storageService: StorageService,
   ) {}
 
-  async findAll() {
-    return this.prisma.kategoriSampah.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(query?: QueryKategoriSampahDto) {
+    if (!query || (query.search === undefined && query.jenis === undefined && query.page === undefined && query.limit === undefined)) {
+      return this.prisma.kategoriSampah.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    const { search, jenis, page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const where: any = {};
+
+    if (search) {
+      where.namaKategori = { contains: search, mode: 'insensitive' as const };
+    }
+
+    if (jenis) {
+      where.jenis = jenis;
+    }
+
+    const [total, data] = await Promise.all([
+      this.prisma.kategoriSampah.count({ where }),
+      this.prisma.kategoriSampah.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    const meta = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return { data, meta };
   }
 
   async create(

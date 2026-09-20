@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service.js';
 import { StorageService } from '../../common/storage.service.js';
-import { CreateHadiahDto, UpdateHadiahDto } from './dto/index.js';
+import { CreateHadiahDto, UpdateHadiahDto, QueryHadiahDto } from './dto/index.js';
 
 @Injectable()
 export class HadiahService {
@@ -10,10 +10,41 @@ export class HadiahService {
     private readonly storageService: StorageService,
   ) {}
 
-  async findAll() {
-    return this.prisma.hadiah.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(query?: QueryHadiahDto) {
+    if (!query || (query.search === undefined && query.page === undefined && query.limit === undefined)) {
+      return this.prisma.hadiah.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    const { search, page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const where: any = {};
+
+    if (search) {
+      where.namaHadiah = { contains: search, mode: 'insensitive' as const };
+    }
+
+    const [total, data] = await Promise.all([
+      this.prisma.hadiah.count({ where }),
+      this.prisma.hadiah.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    const meta = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return { data, meta };
   }
 
   async create(dto: CreateHadiahDto, fotoUrl?: string) {

@@ -220,7 +220,7 @@ export class SetorSampahService {
   async verify(id: string, dto: VerifySetorSampahDto, adminUserId?: string) {
     // Lookup AdminBank id from the admin's userId (if provided)
     let adminBankId: string | undefined;
-    if (adminUserId) {
+    if (adminUserId && this.prisma.adminBank?.findUnique) {
       const adminBank = await this.prisma.adminBank.findUnique({
         where: { userId: adminUserId },
         select: { id: true },

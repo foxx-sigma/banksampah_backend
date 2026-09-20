@@ -35,7 +35,7 @@ export class CreateHadiahDto {
     minimum: 0,
   })
   @Type(() => Number)
-  @IsNumber({}, { message: 'Poin dibutuhkan harus berupa angka' })
+  @IsInt({ message: 'Poin dibutuhkan harus berupa angka bulat' })
   @Min(0, { message: 'Poin dibutuhkan minimal 0' })
   poinDibutuhkan: number;
 

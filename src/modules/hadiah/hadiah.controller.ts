@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
   UseInterceptors,
@@ -26,7 +27,11 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { HadiahService } from './hadiah.service.js';
-import { CreateHadiahDto, UpdateHadiahDto } from './dto/index.js';
+import {
+  CreateHadiahDto,
+  UpdateHadiahDto,
+  QueryHadiahDto,
+} from './dto/index.js';
 import {
   Public,
   Roles,
@@ -98,7 +103,7 @@ export class HadiahController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Mendapatkan daftar katalog hadiah',
+    summary: 'Mendapatkan daftar katalog hadiah (dengan filter/pagination jika ada)',
     description:
       'Menampilkan katalog item hadiah reward beserta jumlah poin yang dibutuhkan dan sisa stok.',
   })
@@ -107,8 +112,8 @@ export class HadiahController {
     description: 'Daftar katalog hadiah berhasil dimuat',
   })
   @ResponseMessage('Daftar katalog hadiah berhasil dimuat')
-  async findAll() {
-    return this.hadiahService.findAll();
+  async findAll(@Query() query: QueryHadiahDto) {
+    return this.hadiahService.findAll(query);
   }
 
   @Roles('ADMIN')

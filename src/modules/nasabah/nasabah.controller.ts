@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
   UseInterceptors,
@@ -26,7 +27,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { NasabahService } from './nasabah.service.js';
-import { CreateNasabahDto, UpdateNasabahDto } from './dto/index.js';
+import { CreateNasabahDto, UpdateNasabahDto, QueryNasabahDto } from './dto/index.js';
 import {
   Roles,
   ResponseMessage,
@@ -94,9 +95,9 @@ export class NasabahController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Mendapatkan daftar seluruh data nasabah (Admin)',
+    summary: 'Mendapatkan daftar data nasabah dengan filter dan pagination (Admin)',
     description:
-      'Menampilkan daftar seluruh nasabah yang terdaftar pada unit bank sampah ini.',
+      'Menampilkan daftar nasabah yang terdaftar, dengan dukungan pencarian berdasarkan nama/username, dan pagination.',
   })
   @ApiResponse({
     status: 200,
@@ -111,8 +112,8 @@ export class NasabahController {
     description: 'Forbidden - Hanya Admin yang berhak mengakses',
   })
   @ResponseMessage('Daftar data nasabah berhasil dimuat')
-  async findAll() {
-    return this.nasabahService.findAll();
+  async findAll(@Query() query: QueryNasabahDto) {
+    return this.nasabahService.findAll(query);
   }
 
   @Post()
