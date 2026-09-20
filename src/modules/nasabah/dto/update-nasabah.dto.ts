@@ -1,8 +1,26 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { SanitizeText } from '../../../common/decorators/sanitize.decorator.js';
 
 export class UpdateNasabahDto {
+  @ApiPropertyOptional({
+    description: 'Username akun nasabah',
+    example: 'budisantoso',
+  })
+  @IsOptional()
+  @SanitizeText()
+  @IsString({ message: 'Username harus berupa string' })
+  username?: string;
+
+  @ApiPropertyOptional({
+    description: 'Password baru nasabah (opsional)',
+    example: 'newpassword123',
+  })
+  @IsOptional()
+  @IsString({ message: 'Password harus berupa string' })
+  @MinLength(6, { message: 'Password minimal 6 karakter' })
+  password?: string;
+
   @ApiPropertyOptional({
     description: 'Nama nasabah',
     example: 'Budi Santoso',

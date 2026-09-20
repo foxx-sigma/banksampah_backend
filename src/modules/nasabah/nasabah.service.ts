@@ -43,14 +43,14 @@ export class NasabahService {
     const skip = (page - 1) * limit;
     const take = limit;
 
-    const where: any = search
-      ? {
-          OR: [
-            { namaNasabah: { contains: search, mode: 'insensitive' as const } },
-            { user: { username: { contains: search, mode: 'insensitive' as const } } },
-          ],
-        }
-      : {};
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { namaNasabah: { contains: search, mode: 'insensitive' as const } },
+        { user: { username: { contains: search, mode: 'insensitive' as const } } },
+      ];
+    }
 
     const [total, data] = await Promise.all([
       this.prisma.nasabah.count({ where }),
@@ -179,10 +179,41 @@ export class NasabahService {
   ) {
     const existing = await this.prisma.nasabah.findFirst({
       where: { id },
+      include: { user: true },
     });
 
     if (!existing) {
       throw new NotFoundException('Data nasabah tidak ditemukan');
+    }
+
+    // Handle user credential updates
+    const userUpdateData: any = {};
+    if (dto.username !== undefined && dto.username.trim() !== '') {
+      const trimmedUsername = dto.username.trim();
+      if (trimmedUsername !== existing.user.username) {
+        const usernameTaken = await this.prisma.user.findFirst({
+          where: {
+            username: trimmedUsername,
+            NOT: { id: existing.userId },
+          },
+        });
+        if (usernameTaken) {
+          throw new ConflictException('Username sudah digunakan oleh akun lain');
+        }
+        userUpdateData.username = trimmedUsername;
+      }
+    }
+
+    if (dto.password !== undefined && dto.password.trim() !== '') {
+      const saltRounds = 10;
+      userUpdateData.password = await bcrypt.hash(dto.password, saltRounds);
+    }
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: userUpdateData,
+      });
     }
 
     const updateData: any = {};
