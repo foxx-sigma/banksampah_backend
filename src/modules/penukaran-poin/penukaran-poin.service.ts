@@ -112,6 +112,9 @@ export class PenukaranPoinService {
           hadiah: true,
         },
       });
+    }, {
+      maxWait: 5000,
+      timeout: 15000,
     });
   }
 
