@@ -98,7 +98,7 @@ describe('Railway & Frontend Integration Verification', () => {
         })
         .expect(200);
 
-      const setCookie = res.headers['set-cookie'] as string[];
+      const setCookie = res.headers['set-cookie'] as unknown as string[];
       expect(setCookie).toBeDefined();
 
       const accessTokenCookie = setCookie.find((c) => c.startsWith('accessToken='));
@@ -148,7 +148,7 @@ describe('Railway & Frontend Integration Verification', () => {
         .post('/api/v1/auth/logout')
         .expect(200);
 
-      const setCookie = res.headers['set-cookie'] as string[];
+      const setCookie = res.headers['set-cookie'] as unknown as string[];
       expect(setCookie).toBeDefined();
 
       const accessTokenClear = setCookie.find((c) => c.startsWith('accessToken=;'));

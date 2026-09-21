@@ -84,7 +84,7 @@ describe('NasabahService', () => {
         orderBy: { createdAt: 'desc' },
       });
       expect(result).toHaveLength(1);
-      expect(result[0].namaNasabah).toBe('Budi Santoso');
+      expect((result as any[])[0].namaNasabah).toBe('Budi Santoso');
     });
   });
 

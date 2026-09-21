@@ -60,7 +60,7 @@ describe('HadiahService', () => {
         orderBy: { createdAt: 'desc' },
       });
       expect(result).toHaveLength(1);
-      expect(result[0].namaHadiah).toBe('Tumbler Stainless Steel');
+      expect((result as any[])[0].namaHadiah).toBe('Tumbler Stainless Steel');
     });
   });
 

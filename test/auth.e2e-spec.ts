@@ -377,7 +377,7 @@ describe('AuthController (e2e)', () => {
 
       const cookies = loginRes.headers['set-cookie'];
       expect(cookies).toBeDefined();
-      const accessTokenCookie = (cookies as string[]).find((c) =>
+      const accessTokenCookie = (cookies as unknown as string[]).find((c) =>
         c.startsWith('accessToken='),
       );
       expect(accessTokenCookie).toBeDefined();
@@ -403,7 +403,7 @@ describe('AuthController (e2e)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.message).toBe('Logout berhasil');
 
-      const cookies = res.headers['set-cookie'] as string[];
+      const cookies = res.headers['set-cookie'] as unknown as string[];
       expect(cookies).toBeDefined();
       const accessTokenClear = cookies.find((c) => c.startsWith('accessToken=;'));
       expect(accessTokenClear).toBeDefined();
