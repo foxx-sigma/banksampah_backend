@@ -38,7 +38,7 @@ export class JwtAuthGuard implements CanActivate {
     ]);
 
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractToken(request);
 
     if (isPublic) {
       if (token) {
@@ -92,14 +92,31 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
-  private extractTokenFromHeader(request: any): string | undefined {
-    const authorization = request.headers['authorization'];
-    if (!authorization) {
-      return undefined;
+  private extractToken(request: any): string | undefined {
+    const authorization =
+      request?.headers?.['authorization'] || request?.headers?.['Authorization'];
+    if (authorization && typeof authorization === 'string') {
+      const [type, token] = authorization.split(' ');
+      if (type === 'Bearer' && token) {
+        return token;
+      }
     }
 
-    const [type, token] = authorization.split(' ');
-    return type === 'Bearer' ? token : undefined;
+    if (request?.cookies) {
+      const cookieToken =
+        request.cookies['accessToken'] ||
+        request.cookies['token'] ||
+        request.cookies['auth_token'];
+      if (cookieToken && typeof cookieToken === 'string') {
+        return cookieToken;
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractTokenFromHeader(request: any): string | undefined {
+    return this.extractToken(request);
   }
 }
 

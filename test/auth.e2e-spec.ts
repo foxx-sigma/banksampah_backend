@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import bcrypt from 'bcrypt';
+import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/common/prisma.service.js';
 
@@ -32,6 +33,7 @@ describe('AuthController (e2e)', () => {
   };
 
   beforeEach(async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as any);
     mockNasabahUser.password = await bcrypt.hash('secret123', 10);
 
     prismaMock = {
@@ -57,6 +59,7 @@ describe('AuthController (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -359,6 +362,52 @@ describe('AuthController (e2e)', () => {
       expect(meRes.body.data.role).toBe('NASABAH');
       expect(meRes.body.data.password).toBeUndefined();
       expect(meRes.body.data.nasabah.namaNasabah).toBe('Budi Santoso');
+    });
+
+    it('should authenticate successfully using HttpOnly cookie without Authorization header (200)', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(mockNasabahUser);
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({
+          username: 'nasabah1',
+          password: 'secret123',
+        })
+        .expect(200);
+
+      const cookies = loginRes.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+      const accessTokenCookie = (cookies as string[]).find((c) =>
+        c.startsWith('accessToken='),
+      );
+      expect(accessTokenCookie).toBeDefined();
+
+      const meRes = await request(app.getHttpServer())
+        .get('/api/v1/auth/me')
+        .set('Cookie', accessTokenCookie!)
+        .expect(200);
+
+      expect(meRes.body.statusCode).toBe(200);
+      expect(meRes.body.success).toBe(true);
+      expect(meRes.body.data.username).toBe('nasabah1');
+    });
+  });
+
+  describe('POST /api/v1/auth/logout', () => {
+    it('should clear cookies on logout (200)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/logout')
+        .expect(200);
+
+      expect(res.body.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Logout berhasil');
+
+      const cookies = res.headers['set-cookie'] as string[];
+      expect(cookies).toBeDefined();
+      const accessTokenClear = cookies.find((c) => c.startsWith('accessToken=;'));
+      expect(accessTokenClear).toBeDefined();
+      expect(accessTokenClear).toContain('Path=/');
     });
   });
 });

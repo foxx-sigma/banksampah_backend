@@ -101,6 +101,29 @@ describe('Common Infrastructure', () => {
       expect(req.user).toEqual(payload);
     });
 
+    it('should bind request.user if token is valid in cookies', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      const payload = { sub: 'u1', username: 'john', role: 'NASABAH' };
+      jwtServiceMock.verifyAsync.mockResolvedValue(payload);
+
+      const req: any = {
+        headers: {},
+        cookies: { accessToken: 'good-cookie-token' },
+      };
+
+      const context = {
+        getHandler: vi.fn(),
+        getClass: vi.fn(),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(req),
+        }),
+      } as unknown as ExecutionContext;
+
+      const result = await guard.canActivate(context);
+      expect(result).toBe(true);
+      expect(req.user).toEqual(payload);
+    });
+
     it('should throw 401 if user no longer exists in database when prisma is provided', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       const payload = { sub: 'deleted-user', username: 'deleted', role: 'NASABAH' };

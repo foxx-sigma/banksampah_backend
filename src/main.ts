@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
 import { AppModule, ObserveInstrument } from './app.module.js';
 
@@ -40,16 +41,9 @@ async function bootstrap() {
   if (expressApp && typeof expressApp.disable === 'function') {
     expressApp.disable('x-powered-by');
   }
-  if (expressApp && typeof expressApp.set === 'function') {
-    const trustProxy = process.env.TRUST_PROXY;
-    if (trustProxy === 'true' || trustProxy === '1') {
-      expressApp.set('trust proxy', 1);
-    } else if (trustProxy && trustProxy !== 'false' && trustProxy !== '0') {
-      expressApp.set('trust proxy', trustProxy);
-    } else {
-      expressApp.set('trust proxy', false);
-    }
-  }
+  app.set('trust proxy', 1);
+
+  app.use(cookieParser());
 
   const isProduction = process.env.NODE_ENV === 'production';
 
@@ -99,17 +93,18 @@ async function bootstrap() {
   });
   app.use('/api/v1/auth/login', authLimiter);
 
-  const corsOrigin = process.env.CORS_ORIGIN;
-  const isWildcard = !corsOrigin || corsOrigin.trim() === '*';
-  const allowedOrigins = isWildcard
-    ? '*'
-    : corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+  const rawOrigins =
+    process.env.FRONTEND_URLS || process.env.CORS_ORIGIN || 'http://localhost:3000';
+  const allowedOrigins = rawOrigins
+    .split(',')
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0 && o !== '*');
 
   app.enableCors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: !isWildcard,
+    credentials: true,
   });
 
   app.useGlobalPipes(
@@ -156,10 +151,10 @@ async function bootstrap() {
     });
   }
 
-  const port = process.env.PORT ?? 3001;
-  console.log(`[main] Calling app.listen on port ${port}...`);
-  await app.listen(port);
-  console.log(`[main] Server is running on http://localhost:${port}`);
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+  console.log(`[main] Calling app.listen on port ${port} (0.0.0.0)...`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`[main] Server is running on http://0.0.0.0:${port}`);
 }
 await bootstrap();
 

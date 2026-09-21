@@ -8,7 +8,9 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
@@ -178,8 +180,47 @@ export class AuthController {
     description: 'Username atau password salah',
   })
   @ResponseMessage('Login berhasil')
-  async login(@Body() dto: LoginUserDto) {
-    return this.authService.login(dto);
+  async login(
+    @Body() dto: LoginUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(dto);
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000,
+    };
+    res.cookie('accessToken', result.accessToken, cookieOptions);
+    res.cookie('auth_token', result.accessToken, cookieOptions);
+    return result;
+  }
+
+  @Public()
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Logout pengguna (Nasabah atau Admin)',
+    description: 'Menghapus session cookie autentikasi pengguna.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout berhasil, cookie autentikasi dibersihkan',
+  })
+  @ResponseMessage('Logout berhasil')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const clearOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+      path: '/',
+    };
+    res.clearCookie('accessToken', clearOptions);
+    res.clearCookie('auth_token', clearOptions);
+    return null;
   }
 
   @Get('me')
