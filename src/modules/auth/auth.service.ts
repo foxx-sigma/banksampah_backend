@@ -79,7 +79,11 @@ export class AuthService {
   async registerAdmin(dto: RegisterAdminBankDto) {
     const username = dto.username.trim();
 
-    const existingAdmin = await this.prisma.adminBank.findFirst({});
+    const existingAdmin = await this.prisma.adminBank.findFirst({
+      where: {
+        namaUnit: dto.namaUnit.trim()
+      }
+    });
 
     if (existingAdmin) {
       throw new ConflictException(
